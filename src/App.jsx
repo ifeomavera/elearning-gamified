@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import ForgotPassword from './pages/ForgotPassword'; // New Import
+import ForgotPassword from './pages/ForgotPassword';
 import Leaderboard from './pages/Leaderboard';
 import Profile from './pages/Profile';
 import AdminDashboard from './pages/AdminDashboard';
@@ -10,10 +10,9 @@ import Toast from './components/Toast';
 
 function App() {
   const [user, setUser] = useState(null);
-  const [role, setRole] = useState('student'); // 'student' or 'admin'
+  const [avatar, setAvatar] = useState("👨‍💻"); // NEW: Avatar State
+  const [role, setRole] = useState('student');
   const [currentView, setCurrentView] = useState('login');
-  
-  // TOAST STATE
   const [toast, setToast] = useState(null);
 
   const showToast = (message, type = 'success') => {
@@ -23,22 +22,37 @@ function App() {
   useEffect(() => {
     const savedUser = localStorage.getItem('currentUser');
     const savedRole = localStorage.getItem('currentRole');
+    const savedAvatar = localStorage.getItem('userAvatar'); // Load avatar
+    
     if (savedUser) {
       setUser(savedUser);
       setRole(savedRole || 'student');
+      if (savedAvatar) setAvatar(savedAvatar);
+      setCurrentView('dashboard');
     }
   }, []);
 
-  // UPDATED LOGIN HANDLER: Now accepts 'isAdmin' flag
   const handleLogin = (username, isAdmin) => {
     setUser(username);
     const userRole = isAdmin ? 'admin' : 'student';
     setRole(userRole);
     
+    // Set default avatar if none exists
+    const currentAvatar = localStorage.getItem('userAvatar') || "👨‍💻";
+    setAvatar(currentAvatar);
+
     localStorage.setItem('currentUser', username);
     localStorage.setItem('currentRole', userRole);
+    localStorage.setItem('userAvatar', currentAvatar);
     
     showToast(`Welcome back, ${username}!`);
+    setCurrentView('dashboard');
+  };
+
+  // NEW: Handle Profile Updates (Name + Avatar)
+  const handleUpdateProfile = (newName, newAvatar) => {
+    setUser(newName);
+    setAvatar(newAvatar);
   };
 
   const handleLogout = () => {
@@ -55,29 +69,28 @@ function App() {
   };
 
   const renderPage = () => {
-    // 1. IF LOGGED IN
     if (user) {
       if (role === 'admin') {
         return <AdminDashboard onLogout={handleLogout} showToast={showToast} />;
       }
-      
-      // Student Routes
-      if (currentView === 'dashboard' || currentView === 'login') {
-        return <Dashboard username={user} onLogout={handleLogout} onNavigate={handleNavigate} showToast={showToast} />;
+      if (currentView === 'dashboard') {
+        // Pass avatar to Dashboard
+        return <Dashboard username={user} avatar={avatar} onLogout={handleLogout} onNavigate={handleNavigate} showToast={showToast} />;
       }
       if (currentView === 'leaderboard') {
-        return <Leaderboard username={user} onNavigate={() => setCurrentView('dashboard')} />;
+        // Pass avatar to Leaderboard
+        return <Leaderboard username={user} avatar={avatar} onNavigate={() => setCurrentView('dashboard')} />;
       }
       if (currentView === 'profile') {
-        return <Profile onNavigate={() => setCurrentView('dashboard')} onUpdateName={setUser} showToast={showToast} />;
+        // Pass handleUpdateProfile
+        return <Profile onNavigate={() => setCurrentView('dashboard')} onUpdateProfile={handleUpdateProfile} showToast={showToast} />;
       }
-      return <Dashboard username={user} onNavigate={handleNavigate} showToast={showToast} />;
+      return <Dashboard username={user} avatar={avatar} onLogout={handleLogout} onNavigate={handleNavigate} showToast={showToast} />;
     }
 
-    // 2. IF LOGGED OUT
     switch (currentView) {
       case 'signup':
-      case 'register': // Handle both names
+      case 'register':
         return <Register onSignUp={(name) => handleLogin(name, false)} onNavigate={handleNavigate} />;
       case 'forgot-password':
         return <ForgotPassword onNavigate={handleNavigate} />;
@@ -90,13 +103,7 @@ function App() {
   return (
     <>
       {renderPage()}
-      {toast && (
-        <Toast 
-          message={toast.message} 
-          type={toast.type} 
-          onClose={() => setToast(null)} 
-        />
-      )}
+      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </>
   );
 }

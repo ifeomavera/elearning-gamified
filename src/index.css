@@ -1,20 +1,89 @@
-/* 1. RESET DEFAULTS */
+/* =========================================
+   1. GLOBAL RESET & LAYOUT
+   ========================================= */
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
 }
 
-/* 2. MAKE APP FULL WIDTH */
-html, body, #root {
+html, body {
   width: 100%;
-  min-height: 100vh; /* Ensure it covers full height */
-  background-color: #f4f7f6; /* Default light background for dashboard */
-  font-family: 'Segoe UI', sans-serif;
-  overflow-x: hidden;
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: #f4f7f6; /* Default Light Background */
+  font-family: 'Segoe UI', 'Roboto', 'Helvetica', sans-serif;
+  overflow-x: hidden; /* Prevent horizontal scroll on mobile */
+  -webkit-font-smoothing: antialiased;
 }
 
-/* 3. CRITICAL FIX: Remove 'display: flex' from #root */
 #root {
-  display: block; /* Allows children (Dashboard) to stretch 100% */
+  width: 100%;
+  min-height: 100vh;
+  display: block; /* CRITICAL: Allows pages to take full width */
+}
+
+/* =========================================
+   2. KEYFRAME ANIMATIONS
+   ========================================= */
+
+/* Fade In (For Modals, Toasts, and Page Loads) */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Pop Effect (For Badges and Avatars) */
+@keyframes popIn {
+  0% { transform: scale(0.5); opacity: 0; }
+  60% { transform: scale(1.1); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* Slide Up (For Cards and Lists) */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Shimmer/Pulse (Optional for loading states or attention) */
+@keyframes pulse {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+}
+
+/* =========================================
+   3. UTILITY CLASSES
+   ========================================= */
+
+/* Add these classes to any component to make it move! */
+
+.animate-fade {
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+.animate-pop {
+  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* Staggered Slides (Good for lists of courses) */
+.animate-slide-1 { opacity: 0; animation: slideUp 0.6s ease-out 0.1s forwards; }
+.animate-slide-2 { opacity: 0; animation: slideUp 0.6s ease-out 0.2s forwards; }
+.animate-slide-3 { opacity: 0; animation: slideUp 0.6s ease-out 0.3s forwards; }
+
+/* Scrollbar Styling (Makes it look modern) */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+  background: #bdc3c7;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #7f8c8d;
 }
