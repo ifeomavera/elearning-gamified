@@ -1,0 +1,20 @@
+/* 1. RESET DEFAULTS */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* 2. MAKE APP FULL WIDTH */
+html, body, #root {
+  width: 100%;
+  min-height: 100vh; /* Ensure it covers full height */
+  background-color: #f4f7f6; /* Default light background for dashboard */
+  font-family: 'Segoe UI', sans-serif;
+  overflow-x: hidden;
+}
+
+/* 3. CRITICAL FIX: Remove 'display: flex' from #root */
+#root {
+  display: block; /* Allows children (Dashboard) to stretch 100% */
+}
