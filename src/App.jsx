@@ -9,50 +9,48 @@ import AdminDashboard from './pages/AdminDashboard';
 import NotFound from './pages/NotFound';
 import LessonView from './pages/LessonView';
 import Forum from './pages/Forum';
-import Stats from './pages/Stats'; // <--- NEW IMPORT
+import Stats from './pages/Stats';
 import Toast from './components/Toast';
 
 function App() {
-  const [user, setUser] = useState(null);
-  const [avatar, setAvatar] = useState("👨‍💻");
-  const [role, setRole] = useState('student');
-  
-  // THEME STATE
-  const [theme, setTheme] = useState(() => localStorage.getItem('appTheme') || 'light');
-  
-  // NAVIGATION STATE
-  const [currentView, setCurrentView] = useState('login');
+  // 1. INSTANTLY LOAD USER & ROLE
+  const [user, setUser] = useState(() => localStorage.getItem('currentUser'));
+  const [role, setRole] = useState(() => localStorage.getItem('currentRole') || 'student');
+  const [avatar, setAvatar] = useState(() => localStorage.getItem('userAvatar') || "👨‍💻");
+
+  // 2. INSTANTLY LOAD THEME
+  const [theme, setTheme] = useState(() => {
+    const saved = localStorage.getItem('appTheme') || 'light';
+    document.documentElement.setAttribute('data-theme', saved);
+    return saved;
+  });
+
+  // 3. INSTANTLY LOAD VIEW
+  const [currentView, setCurrentView] = useState(() => {
+    const saved = localStorage.getItem('currentView');
+    if (saved === 'lesson') return 'dashboard';
+    if (localStorage.getItem('currentUser') && !saved) return 'dashboard';
+    return saved || 'login';
+  });
+
   const [activeLesson, setActiveLesson] = useState(null);
   const [toast, setToast] = useState(null);
 
   const showToast = (message, type = 'success') => setToast({ message, type });
 
-  // 1. LOAD SAVED DATA
+  // 4. THEME UPDATER
   useEffect(() => {
-    const savedUser = localStorage.getItem('currentUser');
-    const savedRole = localStorage.getItem('currentRole');
-    const savedAvatar = localStorage.getItem('userAvatar');
-    
-    if (savedUser) {
-      setUser(savedUser);
-      setRole(savedRole || 'student');
-      if (savedAvatar) setAvatar(savedAvatar);
-      // Ensure we don't get stuck on login if we have a user
-      if (currentView === 'login') setCurrentView('dashboard');
-    }
-  }, []);
-
-  // 2. APPLY THEME
-  useEffect(() => {
-    if (!user) {
-      document.documentElement.setAttribute('data-theme', 'dark');
-    } else {
-      document.documentElement.setAttribute('data-theme', theme);
-      localStorage.setItem('appTheme', theme);
-    }
-  }, [theme, user]);
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('appTheme', theme);
+  }, [theme]);
 
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
+
+  // --- HANDLERS ---
+  const handleNavigate = (view) => {
+    setCurrentView(view);
+    localStorage.setItem('currentView', view);
+  };
 
   const handleLogin = (username, isAdmin) => {
     setUser(username);
@@ -60,11 +58,13 @@ function App() {
     setRole(userRole);
     const currentAvatar = localStorage.getItem('userAvatar') || "👨‍💻";
     setAvatar(currentAvatar);
+    
     localStorage.setItem('currentUser', username);
     localStorage.setItem('currentRole', userRole);
     localStorage.setItem('userAvatar', currentAvatar);
+    
     showToast(`Welcome back, ${username}!`);
-    setCurrentView('dashboard');
+    handleNavigate('dashboard'); 
   };
 
   const handleUpdateProfile = (newName, newAvatar) => {
@@ -77,26 +77,22 @@ function App() {
     setRole('student');
     localStorage.removeItem('currentUser');
     localStorage.removeItem('currentRole');
+    localStorage.removeItem('currentView'); 
     setCurrentView('login');
     showToast("Logged out successfully", "info");
   };
 
-  const handleNavigate = (view) => setCurrentView(view);
-
-  // --- START LESSON ---
+  // --- LESSON LOGIC ---
   const handleStartLesson = (lesson) => {
     setActiveLesson(lesson);
-    setCurrentView('lesson');
+    handleNavigate('lesson');
   };
 
-  // --- COMPLETE LESSON & SAVE DATA ---
   const handleLessonComplete = (earnedXP) => {
-    // 1. Update XP
     const currentXP = parseInt(localStorage.getItem('studentXP') || '2350');
     const newXP = currentXP + earnedXP;
     localStorage.setItem('studentXP', newXP);
 
-    // 2. Mark Course as Completed
     const savedCoursesStr = localStorage.getItem('appCourses');
     if (savedCoursesStr && activeLesson) {
       const courses = JSON.parse(savedCoursesStr);
@@ -106,14 +102,24 @@ function App() {
       localStorage.setItem('appCourses', JSON.stringify(updatedCourses));
     }
 
-    // 3. Return
-    setCurrentView('dashboard');
     showToast(`Lesson Completed! +${earnedXP} XP`, "success");
+    handleNavigate('dashboard');
   };
 
+  // --- RENDER PAGE ---
   const renderPage = () => {
     if (user) {
-      if (role === 'admin') return <AdminDashboard onLogout={handleLogout} showToast={showToast} />;
+      // FIX: PASS THEME PROPS TO ADMIN DASHBOARD
+      if (role === 'admin') {
+        return (
+          <AdminDashboard 
+            onLogout={handleLogout} 
+            showToast={showToast} 
+            toggleTheme={toggleTheme} 
+            currentTheme={theme}
+          />
+        );
+      }
       
       switch (currentView) {
         case 'dashboard':
@@ -139,23 +145,13 @@ function App() {
             <LessonView 
               lesson={activeLesson} 
               onComplete={handleLessonComplete}
-              onExit={() => setCurrentView('dashboard')} 
+              onExit={() => handleNavigate('dashboard')} 
             />
           );
         case 'forum':
-          return (
-            <Forum 
-              username={user} 
-              avatar={avatar} 
-              onNavigate={handleNavigate} 
-            />
-          );
-        case 'stats': // <--- NEW ROUTE FOR ANALYTICS
-          return (
-            <Stats 
-              onNavigate={handleNavigate} 
-            />
-          );
+          return <Forum username={user} avatar={avatar} onNavigate={handleNavigate} />;
+        case 'stats': 
+          return <Stats onNavigate={handleNavigate} />;
         default:
           return <NotFound onNavigate={handleNavigate} />;
       }

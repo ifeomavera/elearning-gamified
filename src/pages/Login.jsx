@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FaUserGraduate, FaChalkboardTeacher, FaLock } from 'react-icons/fa';
+import { FaUserGraduate, FaChalkboardTeacher, FaLock, FaUser } from 'react-icons/fa';
 
 const Login = ({ onLogin, onNavigate }) => {
   const [username, setUsername] = useState('');
@@ -17,37 +17,50 @@ const Login = ({ onLogin, onNavigate }) => {
 
   return (
     <div style={styles.container}>
-      <div style={styles.card}>
+      {/* ANIMATED BACKGROUND CIRCLES with lower opacity for light mode */}
+      <div className="bg-shape1" style={{ opacity: 0.15 }}></div>
+      <div className="bg-shape2" style={{ opacity: 0.15 }}></div>
+
+      <div className="glass-card" style={styles.card}>
         
-        {/* ICON */}
+        {/* ICON HEADER */}
         <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-          {isAdminLogin ? (
-            <FaChalkboardTeacher size={50} color="#ff7675" />
-          ) : (
-            <FaUserGraduate size={50} color="#03dac6" />
-          )}
+          <div style={styles.iconWrapper}>
+            {isAdminLogin ? (
+              <FaChalkboardTeacher size={40} color="#ff7675" />
+            ) : (
+              <FaUserGraduate size={40} color="var(--accent-color)" />
+            )}
+          </div>
         </div>
 
-        {/* HEADER */}
+        {/* TITLE TEXT */}
         <h2 style={styles.title}>
           {isAdminLogin ? "Instructor Portal" : "Student Portal"}
         </h2>
         <p style={styles.subtitle}>
-          {isAdminLogin ? "Login to manage courses" : "Login to access your dashboard"}
+          {isAdminLogin ? "Manage your curriculum" : "Gamify your learning journey"}
         </p>
         
         {/* FORM */}
-        <form onSubmit={handleSubmit}>
-          <input 
-            type="text" 
-            placeholder={isAdminLogin ? "Admin Username" : "Student Username"} 
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            style={styles.input}
-            required
-          />
+        <form onSubmit={handleSubmit} style={{ marginTop: '30px' }}>
+          
+          {/* USERNAME INPUT */}
+          <div style={styles.inputGroup}>
+            <FaUser style={styles.inputIcon} />
+            <input 
+              type="text" 
+              placeholder={isAdminLogin ? "Admin Username" : "Student Username"} 
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              style={styles.input}
+              required
+            />
+          </div>
 
-          <div style={{ position: 'relative' }}>
+          {/* PASSWORD INPUT */}
+          <div style={styles.inputGroup}>
+            <FaLock style={styles.inputIcon} />
             <input 
               type="password" 
               placeholder="Password" 
@@ -56,7 +69,6 @@ const Login = ({ onLogin, onNavigate }) => {
               style={styles.input}
               required
             />
-            <FaLock style={styles.iconLock} />
           </div>
 
           <div style={{ textAlign: 'right', marginBottom: '25px' }}>
@@ -65,29 +77,30 @@ const Login = ({ onLogin, onNavigate }) => {
             </span>
           </div>
 
-          <button type="submit" style={{
-            ...styles.button, 
-            background: isAdminLogin ? '#ff7675' : '#03dac6'
+          {/* BUTTON with forced white text for contrast */}
+          <button type="submit" className="btn-primary" style={{ 
+            ...styles.button,
+            background: isAdminLogin ? 'linear-gradient(135deg, #d63031 0%, #ff7675 100%)' : 'var(--accent-color)'
           }}>
-            {isAdminLogin ? "Login as Admin" : "Access Dashboard"}
+            {isAdminLogin ? "Login to Admin Panel" : "Start Learning"}
           </button>
         </form>
         
-        {/* FOOTER */}
+        {/* FOOTER SWITCH */}
         <div style={styles.footer}>
-          <p style={{ fontSize: '14px', color: '#a0a0a0' }}>
-            {isAdminLogin ? "Are you a student?" : "Are you an instructor?"}
+          <p style={styles.footerText}>
+            {isAdminLogin ? "Not an instructor?" : "Are you an instructor?"}
             <span 
               onClick={() => setIsAdminLogin(!isAdminLogin)} 
-              style={{...styles.link, color: isAdminLogin ? '#03dac6' : '#ff7675'}}
+              style={{...styles.link, color: isAdminLogin ? 'var(--accent-color)' : '#ff7675'}}
             >
-              {isAdminLogin ? "Student Login" : "Admin Login"}
+              {isAdminLogin ? " Student Login" : " Admin Login"}
             </span>
           </p>
         </div>
 
         {!isAdminLogin && (
-          <p style={{ marginTop: '15px', fontSize: '14px', color: '#a0a0a0', textAlign: 'center' }}>
+          <p style={{ marginTop: '15px', ...styles.footerText, textAlign: 'center' }}>
             New here? <span onClick={() => onNavigate('register')} style={styles.link}>Create Account</span>
           </p>
         )}
@@ -97,64 +110,90 @@ const Login = ({ onLogin, onNavigate }) => {
 };
 
 const styles = {
-  // FULLSCREEN CONTAINER
   container: {
     width: '100vw',
-    minHeight: '100vh', // Ensures it covers height even on mobile scroll
+    minHeight: '100vh',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: '#121212',
-    padding: '20px' // Padding prevents edges touching on small phones
+    background: 'var(--bg-primary)', // Use theme background
+    position: 'relative',
+    overflow: 'hidden',
+    padding: '20px',
+    fontFamily: 'var(--font-body, sans-serif)',
+    transition: 'background 0.3s ease'
   },
-  
-  // RESPONSIVE CARD
   card: {
-    width: '100%',         // Try to take full width...
-    maxWidth: '420px',     // ...but stop at 420px (Laptop size)
-    background: '#1e1e1e',
-    padding: '40px 30px',  // Comfortable padding
-    borderRadius: '16px',
-    boxShadow: '0 4px 30px rgba(0,0,0,0.5)',
-    border: '1px solid #333'
+    width: '100%',
+    maxWidth: '400px',
+    padding: '40px',
+    position: 'relative',
+    zIndex: 10,
+    borderRadius: '20px'
+    // Note: background and border are handled by the .glass-card class in CSS
   },
-  
-  // TEXT STYLES
-  title: { color: 'white', marginBottom: '8px', textAlign: 'center', fontSize: '24px' },
-  subtitle: { color: '#a0a0a0', textAlign: 'center', marginBottom: '30px', fontSize: '14px' },
-  
-  // INPUTS
+  iconWrapper: {
+    width: '80px', height: '80px', margin: '0 auto', 
+    borderRadius: '50%', 
+    background: 'var(--bg-secondary)', // Theme-aware icon background
+    display: 'flex', alignItems: 'center', justifyContent: 'center',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+  },
+  title: { 
+    color: 'var(--text-primary)', 
+    marginBottom: '5px', 
+    textAlign: 'center', 
+    fontSize: '28px', 
+    fontWeight: 'bold',
+    fontFamily: 'var(--font-head, sans-serif)'
+  },
+  subtitle: { 
+    color: 'var(--text-secondary)', 
+    textAlign: 'center', 
+    marginBottom: '10px', 
+    fontSize: '15px' 
+  },
+  inputGroup: {
+    position: 'relative',
+    marginBottom: '20px'
+  },
+  inputIcon: {
+    position: 'absolute',
+    left: '15px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    color: 'var(--text-secondary)',
+    zIndex: 1
+  },
   input: {
     width: '100%',
-    padding: '12px 15px',
-    marginBottom: '15px',
-    borderRadius: '8px',
-    border: '1px solid #333',
-    background: '#2d2d2d',
-    color: 'white',
-    fontSize: '16px', // 16px prevents zoom on iPhone
-    boxSizing: 'border-box',
-    outline: 'none'
-  },
-  
-  // ICONS & BUTTONS
-  iconLock: { position: 'absolute', right: '15px', top: '15px', color: '#666' },
-  forgotLink: { color: '#a0a0a0', fontSize: '12px', cursor: 'pointer' },
-  button: {
-    width: '100%',
-    padding: '14px',
-    color: 'black',
-    border: 'none',
-    borderRadius: '8px',
-    fontWeight: 'bold',
-    cursor: 'pointer',
+    padding: '15px 15px 15px 45px', // Padding left for icon
+    borderRadius: '10px',
+    border: '1px solid var(--card-border)',
+    background: 'var(--input-bg)', // Theme-aware input background
+    color: 'var(--text-primary)',
     fontSize: '16px',
-    marginTop: '10px'
+    outline: 'none',
+    transition: '0.3s',
+    fontFamily: 'var(--font-body, sans-serif)'
   },
-  
-  // LINKS
-  footer: { marginTop: '25px', paddingTop: '20px', borderTop: '1px solid #333', textAlign: 'center' },
-  link: { marginLeft: '8px', cursor: 'pointer', fontWeight: 'bold', color: '#03dac6' }
+  forgotLink: { color: 'var(--text-secondary)', fontSize: '13px', cursor: 'pointer' },
+  button: {
+    width: '100%', 
+    padding: '15px', 
+    fontSize: '16px',
+    color: '#ffffff', // Force white text for good contrast
+    border: 'none',
+    borderRadius: '10px',
+    cursor: 'pointer',
+    fontWeight: 'bold',
+    fontFamily: 'var(--font-body, sans-serif)',
+    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+    boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+  },
+  footer: { marginTop: '30px', paddingTop: '20px', borderTop: '1px solid var(--card-border)', textAlign: 'center' },
+  footerText: { fontSize: '14px', color: 'var(--text-secondary)' },
+  link: { marginLeft: '5px', cursor: 'pointer', fontWeight: 'bold', color: 'var(--accent-color)' }
 };
 
 export default Login;

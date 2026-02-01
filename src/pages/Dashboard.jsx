@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import XPBar from '../components/XPBar';
 import BadgeCard from '../components/BadgeCard';
 import CourseCard from '../components/CourseCard';
@@ -33,24 +33,31 @@ const Dashboard = ({ username, avatar, onNavigate, showToast, onLogout, toggleTh
   // 2. RENDER
   return (
     <div style={{ width: '100%', minHeight: '100vh', padding: '20px', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ width: '100%', maxWidth: '100%', padding: '0 20px' }}>
+      <div style={{ width: '100%', maxWidth: '1200px', margin: '0 auto', padding: '0 10px' }}>
         
-        {/* HEADER */}
-        <header style={{ marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        {/* HEADER - RESPONSIVE FIX: flexWrap allows stacking on mobile */}
+        <header style={{ 
+          marginBottom: '30px', 
+          display: 'flex', 
+          flexWrap: 'wrap', // <--- FIX 1: Allow wrapping
+          justifyContent: 'space-between', 
+          alignItems: 'center',
+          gap: '20px'       // <--- FIX 2: Gap between stacked items
+        }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
             
             {/* CLICKABLE AVATAR */}
             <div 
               className="glass-card"
               onClick={() => onNavigate('profile')} 
-              style={{ fontSize: '50px', cursor: 'pointer', width: '70px', height: '70px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              style={{ fontSize: '40px', cursor: 'pointer', width: '60px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
               {avatar || "👨‍💻"}
             </div>
             
             <div>
               {/* CLICKABLE USERNAME */}
-              <h1 style={{ fontSize: '28px', margin: 0 }}>
+              <h1 style={{ fontSize: '24px', margin: 0 }}>
                 Welcome, 
                 <span 
                   onClick={() => onNavigate('profile')} 
@@ -70,7 +77,7 @@ const Dashboard = ({ username, avatar, onNavigate, showToast, onLogout, toggleTh
             </div>
           </div>
           
-          <div style={{ display: 'flex', gap: '15px' }}>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             
             {/* COMMUNITY BUTTON */}
             <button 
@@ -80,20 +87,31 @@ const Dashboard = ({ username, avatar, onNavigate, showToast, onLogout, toggleTh
                 padding: '10px 15px', cursor: 'pointer', 
                 display: 'flex', alignItems: 'center', gap: '10px', 
                 fontSize: '14px', border: '1px solid var(--card-border)',
-                color: 'var(--text-primary)' 
+                color: 'var(--text-primary)',
+                whiteSpace: 'nowrap' // <--- FIX 3: Prevent text breaking
               }}
             >
               <FaUsers color="var(--accent-color)" /> Community
             </button>
 
             {/* THEME TOGGLE */}
-            <button onClick={toggleTheme} className="glass-card" style={{ padding: '10px 15px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', border: '1px solid var(--card-border)' }}>
+            <button onClick={toggleTheme} className="glass-card" style={{ 
+              padding: '10px 15px', cursor: 'pointer', 
+              display: 'flex', alignItems: 'center', gap: '10px', 
+              fontSize: '14px', border: '1px solid var(--card-border)',
+              whiteSpace: 'nowrap' // <--- FIX 3
+            }}>
               {currentTheme === 'light' ? <FaMoon /> : <FaSun color="#ffeb3b" />}
               {currentTheme === 'light' ? "Go Dark" : "Go Light"}
             </button>
             
             {/* LOGOUT */}
-            <button onClick={onLogout} className="glass-card" style={{ border: '1px solid #ff7675', color: '#ff7675', padding: '8px 15px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <button onClick={onLogout} className="glass-card" style={{ 
+              border: '1px solid #ff7675', color: '#ff7675', 
+              padding: '8px 15px', cursor: 'pointer', fontWeight: 'bold', 
+              display: 'flex', alignItems: 'center', gap: '8px',
+              whiteSpace: 'nowrap' // <--- FIX 3
+            }}>
               <FaSignOutAlt /> Logout
             </button>
           </div>
@@ -131,14 +149,14 @@ const Dashboard = ({ username, avatar, onNavigate, showToast, onLogout, toggleTh
             <div style={{background: 'rgba(255,255,255,0.2)', padding: '12px', borderRadius: '50%'}}><FaTrophy size={24} color="var(--accent-color)" /></div>
             <div><h3 style={{margin: 0, fontSize: '18px'}}>Current Rank: #3</h3><p style={{margin: 0, fontSize: '14px', opacity: 0.9}}>Top 10% of class</p></div>
           </div>
-          <span style={{fontWeight: 'bold', fontSize: '14px', background: 'var(--accent-color)', color: '#1e1e2e', padding: '8px 16px', borderRadius: '20px'}}>View Leaderboard →</span>
+          <span style={{fontWeight: 'bold', fontSize: '14px', background: 'var(--accent-color)', color: '#1e1e2e', padding: '8px 16px', borderRadius: '20px', whiteSpace: 'nowrap'}}>View Leaderboard →</span>
         </div>
 
         {/* MAIN CONTENT */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '40px', width: '100%' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '30px', width: '100%' }}>
           
           {/* COURSES */}
-          <div style={{ flex: 2, minWidth: '300px' }}>
+          <div style={{ flex: '2 1 400px', width: '100%' }}> {/* Grow factor 2, Shrink 1, Base 400px */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
               <FaGraduationCap color="var(--accent-color)" size={24} />
               <h3 style={{ margin: 0 }}>My Courses</h3>
@@ -154,7 +172,7 @@ const Dashboard = ({ username, avatar, onNavigate, showToast, onLogout, toggleTh
           </div>
 
           {/* ACHIEVEMENTS */}
-          <div style={{ flex: 1, minWidth: '300px' }}>
+          <div style={{ flex: '1 1 300px', width: '100%' }}> {/* Grow 1, Shrink 1, Base 300px */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
               <FaChartLine color="#e17055" size={24} />
               <h3 style={{ margin: 0 }}>Achievements</h3>
