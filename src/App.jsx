@@ -99,7 +99,7 @@ function App() {
 
     try {
       // Send data to Backend
-      await axios.put(`http://localhost:5000/api/users/${user}/progress`, {
+      await axios.put(`https://elearning-api-2tsf.onrender.com/api/users/${user}/progress`, {
         xpEarned: earnedXP,
         courseId: activeLesson.id
       });

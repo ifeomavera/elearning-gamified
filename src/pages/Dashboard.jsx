@@ -30,7 +30,7 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
     const fetchUserData = async () => {
       try {
         // Call the new API route we just created
-        const res = await axios.get(`http://localhost:5000/api/users/${username}`);
+        const res = await axios.get(`https://elearning-api-2tsf.onrender.com/api/users/${username}`);
         const data = res.data;
 
         // Set Real XP and Level

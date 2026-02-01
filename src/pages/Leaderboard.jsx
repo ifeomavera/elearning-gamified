@@ -11,7 +11,7 @@ const Leaderboard = ({ username, onNavigate }) => {
   useEffect(() => {
     const fetchLeaderboard = async () => {
       try {
-        const res = await axios.get('http://localhost:5000/api/users/leaderboard');
+        const res = await axios.get('https://elearning-api-2tsf.onrender.com/api/users/leaderboard');
         setLeaders(res.data);
         setLoading(false);
       } catch (err) {
