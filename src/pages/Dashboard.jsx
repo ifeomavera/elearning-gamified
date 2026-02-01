@@ -2,18 +2,17 @@ import React, { useState } from 'react';
 import XPBar from '../components/XPBar';
 import BadgeCard from '../components/BadgeCard';
 import CourseCard from '../components/CourseCard';
-import VideoModal from '../components/VideoModal';
-import { FaGraduationCap, FaChartLine, FaTrophy, FaSignOutAlt } from 'react-icons/fa';
+import { FaGraduationCap, FaChartLine, FaTrophy, FaSignOutAlt, FaSun, FaMoon, FaUsers } from 'react-icons/fa';
 
-// UPDATED: Now accepts 'avatar'
-const Dashboard = ({ username, avatar, onNavigate, showToast, onLogout }) => {
+const Dashboard = ({ username, avatar, onNavigate, showToast, onLogout, toggleTheme, currentTheme, onStartLesson }) => {
   
-  const [xp, setXP] = useState(() => {
+  // 1. STATE & LOGIC
+  const [xp] = useState(() => {
     const saved = localStorage.getItem('studentXP');
     return saved ? parseInt(saved) : 2350;
   });
 
-  const [courses, setCourses] = useState(() => {
+  const [courses] = useState(() => {
     const saved = localStorage.getItem('appCourses');
     if (saved) return JSON.parse(saved);
     return [
@@ -23,8 +22,6 @@ const Dashboard = ({ username, avatar, onNavigate, showToast, onLogout }) => {
     ];
   });
 
-  const [activeCourse, setActiveCourse] = useState(null);
-
   const badges = [
     { id: 1, name: "Early Bird", description: "Earn 1000 XP total", isUnlocked: xp >= 1000 },
     { id: 2, name: "Quiz Master", description: "Reach 2500 XP to unlock!", isUnlocked: xp >= 2500 },
@@ -33,71 +30,140 @@ const Dashboard = ({ username, avatar, onNavigate, showToast, onLogout }) => {
 
   const currentLevel = Math.floor(xp / 1000) + 1;
 
-  const handleLessonComplete = () => {
-    if (!activeCourse) return;
-    const newXP = xp + activeCourse.xp;
-    setXP(newXP);
-    localStorage.setItem('studentXP', newXP); 
-    
-    const updatedCourses = courses.map(c => 
-      c.id === activeCourse.id ? { ...c, completed: true } : c
-    );
-    setCourses(updatedCourses);
-    localStorage.setItem('appCourses', JSON.stringify(updatedCourses));
-
-    setActiveCourse(null);
-    if(showToast) showToast(`+${activeCourse.xp} XP Earned!`, "success");
-  };
-
+  // 2. RENDER
   return (
-    <div style={{ width: '100%', minHeight: '100vh', background: '#f4f7f6', padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-      <div style={{ width: '100%', maxWidth: '1200px' }}>
+    <div style={{ width: '100%', minHeight: '100vh', padding: '20px', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ width: '100%', maxWidth: '100%', padding: '0 20px' }}>
         
-        {/* HEADER SECTION WITH AVATAR */}
+        {/* HEADER */}
         <header style={{ marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            {/* AVATAR DISPLAY */}
+            
+            {/* CLICKABLE AVATAR */}
             <div 
+              className="glass-card"
               onClick={() => onNavigate('profile')} 
-              style={{ fontSize: '50px', cursor: 'pointer', background: 'white', borderRadius: '50%', width: '70px', height: '70px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}
+              style={{ fontSize: '50px', cursor: 'pointer', width: '70px', height: '70px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
               {avatar || "👨‍💻"}
             </div>
             
             <div>
-              <h1 style={{ color: '#2d3436', fontSize: '28px', margin: 0 }}>
-                Welcome, <span onClick={() => onNavigate('profile')} style={{ color: '#0984e3', cursor: 'pointer' }}>{username}</span>
+              {/* CLICKABLE USERNAME */}
+              <h1 style={{ fontSize: '28px', margin: 0 }}>
+                Welcome, 
+                <span 
+                  onClick={() => onNavigate('profile')} 
+                  style={{ 
+                    color: 'var(--accent-color)', 
+                    cursor: 'pointer', 
+                    marginLeft: '8px',
+                    textDecoration: 'underline',
+                    textUnderlineOffset: '4px'
+                  }}
+                  title="Edit Profile"
+                >
+                  {username}
+                </span>
               </h1>
-              <p style={{ margin: 0, fontSize: '14px', color: '#636e72' }}>Ready to learn?</p>
+              <p style={{ margin: 0, fontSize: '14px', opacity: 0.8 }}>Ready to learn?</p>
             </div>
           </div>
           
-          <button onClick={onLogout} style={{ background: 'white', border: '1px solid #ff7675', color: '#ff7675', padding: '8px 15px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <FaSignOutAlt /> Logout
-          </button>
+          <div style={{ display: 'flex', gap: '15px' }}>
+            
+            {/* COMMUNITY BUTTON */}
+            <button 
+              onClick={() => onNavigate('forum')}
+              className="glass-card"
+              style={{ 
+                padding: '10px 15px', cursor: 'pointer', 
+                display: 'flex', alignItems: 'center', gap: '10px', 
+                fontSize: '14px', border: '1px solid var(--card-border)',
+                color: 'var(--text-primary)' 
+              }}
+            >
+              <FaUsers color="var(--accent-color)" /> Community
+            </button>
+
+            {/* THEME TOGGLE */}
+            <button onClick={toggleTheme} className="glass-card" style={{ padding: '10px 15px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', border: '1px solid var(--card-border)' }}>
+              {currentTheme === 'light' ? <FaMoon /> : <FaSun color="#ffeb3b" />}
+              {currentTheme === 'light' ? "Go Dark" : "Go Light"}
+            </button>
+            
+            {/* LOGOUT */}
+            <button onClick={onLogout} className="glass-card" style={{ border: '1px solid #ff7675', color: '#ff7675', padding: '8px 15px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <FaSignOutAlt /> Logout
+            </button>
+          </div>
         </header>
 
-        <div style={{ marginBottom: '30px' }}><XPBar currentXP={xp} level={currentLevel} /></div>
+        {/* XP BAR & ANALYTICS LINK */}
+        <div className="glass-card" style={{ marginBottom: '30px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <XPBar currentXP={xp} level={currentLevel} />
+          
+          <div style={{ textAlign: 'right' }}>
+            <button 
+              onClick={() => onNavigate('stats')}
+              style={{ 
+                background: 'transparent', 
+                border: '1px solid var(--accent-color)', 
+                color: 'var(--accent-color)', 
+                padding: '5px 15px', 
+                borderRadius: '20px', 
+                cursor: 'pointer',
+                fontSize: '12px',
+                fontWeight: 'bold',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '5px'
+              }}
+            >
+              <FaChartLine /> View Detailed Analytics
+            </button>
+          </div>
+        </div>
 
-        <div onClick={() => onNavigate('leaderboard')} style={{ background: 'linear-gradient(90deg, #6c5ce7, #a29bfe)', borderRadius: '12px', padding: '20px', marginBottom: '40px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'white', boxShadow: '0 4px 15px rgba(108, 92, 231, 0.3)' }}>
+        {/* LEADERBOARD BANNER */}
+        <div onClick={() => onNavigate('leaderboard')} className="glass-card" style={{ padding: '20px', marginBottom: '40px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
-            <div style={{background: 'rgba(255,255,255,0.2)', padding: '12px', borderRadius: '50%'}}><FaTrophy color="white" size={24} /></div>
+            <div style={{background: 'rgba(255,255,255,0.2)', padding: '12px', borderRadius: '50%'}}><FaTrophy size={24} color="var(--accent-color)" /></div>
             <div><h3 style={{margin: 0, fontSize: '18px'}}>Current Rank: #3</h3><p style={{margin: 0, fontSize: '14px', opacity: 0.9}}>Top 10% of class</p></div>
           </div>
-          <span style={{fontWeight: 'bold', fontSize: '14px', background: 'white', color: '#6c5ce7', padding: '8px 16px', borderRadius: '20px'}}>View Leaderboard →</span>
+          <span style={{fontWeight: 'bold', fontSize: '14px', background: 'var(--accent-color)', color: '#1e1e2e', padding: '8px 16px', borderRadius: '20px'}}>View Leaderboard →</span>
         </div>
 
+        {/* MAIN CONTENT */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '40px', width: '100%' }}>
+          
+          {/* COURSES */}
           <div style={{ flex: 2, minWidth: '300px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}><FaGraduationCap color="#0984e3" size={24} /><h3 style={{ margin: 0, color: '#2d3436' }}>My Courses</h3></div>
-            {courses.map(course => <CourseCard key={course.id} {...course} isCompleted={course.completed} onClick={() => setActiveCourse(course)} />)}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+              <FaGraduationCap color="var(--accent-color)" size={24} />
+              <h3 style={{ margin: 0 }}>My Courses</h3>
+            </div>
+            {courses.map(course => (
+              <CourseCard 
+                key={course.id} 
+                {...course} 
+                isCompleted={course.completed} 
+                onClick={() => onStartLesson(course)} 
+              />
+            ))}
           </div>
+
+          {/* ACHIEVEMENTS */}
           <div style={{ flex: 1, minWidth: '300px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}><FaChartLine color="#e17055" size={24} /><h3 style={{ margin: 0, color: '#2d3436' }}>Achievements</h3></div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>{badges.map(badge => <BadgeCard key={badge.id} {...badge} />)}</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
+              <FaChartLine color="#e17055" size={24} />
+              <h3 style={{ margin: 0 }}>Achievements</h3>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              {badges.map(badge => <BadgeCard key={badge.id} {...badge} />)}
+            </div>
           </div>
         </div>
-        <VideoModal isOpen={!!activeCourse} title={activeCourse?.title} videoId={activeCourse?.videoId} onClose={() => setActiveCourse(null)} onComplete={handleLessonComplete} />
       </div>
     </div>
   );

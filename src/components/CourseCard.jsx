@@ -4,26 +4,31 @@ import { FaPlay, FaCheck } from 'react-icons/fa';
 const CourseCard = ({ title, module, xp, isCompleted, onClick }) => {
   return (
     <div 
-      className="animate-slide-1" // Added Animation Class!
-      style={styles.card}
+      className="glass-card animate-slide-1" // ADDED glass-card class
+      style={{
+        padding: '20px', 
+        marginBottom: '20px', 
+        borderLeft: '5px solid var(--accent-color)', // Dynamic Color
+        transition: 'transform 0.2s',
+        // REMOVED background: 'white'
+      }}
     >
-      <div style={styles.header}>
-        <span style={styles.moduleTag}>{module}</span>
-        {isCompleted && <span style={styles.completedTag}><FaCheck /> Done</span>}
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '10px' }}>
+        <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>{module}</span>
+        {isCompleted && <span style={{ fontSize: '12px', background: '#00b894', color: 'white', padding: '2px 8px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '5px' }}><FaCheck /> Done</span>}
       </div>
       
-      <h3 style={styles.title}>{title}</h3>
+      <h3 style={{ margin: '0 0 15px 0', fontSize: '18px', color: 'var(--text-primary)' }}>{title}</h3>
       
-      <div style={styles.footer}>
-        <span style={styles.xpTag}>+{xp} XP</span>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontWeight: 'bold', color: 'var(--accent-color)', background: 'rgba(0,0,0,0.05)', padding: '5px 10px', borderRadius: '8px', fontSize: '14px' }}>+{xp} XP</span>
         
-        {/* IMPORTANT: This button must use the onClick prop */}
         <button 
           onClick={onClick} 
           style={{
-            ...styles.button,
-            background: isCompleted ? '#b2bec3' : '#0984e3',
-            cursor: isCompleted ? 'default' : 'pointer'
+            background: isCompleted ? '#b2bec3' : 'var(--accent-color)',
+            color: isCompleted ? 'white' : '#1e1e2e', // Dark text on bright button
+            border: 'none', padding: '8px 16px', borderRadius: '6px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', cursor: isCompleted ? 'default' : 'pointer'
           }}
           disabled={isCompleted}
         >
@@ -32,17 +37,6 @@ const CourseCard = ({ title, module, xp, isCompleted, onClick }) => {
       </div>
     </div>
   );
-};
-
-const styles = {
-  card: { background: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 15px rgba(0,0,0,0.05)', marginBottom: '20px', borderLeft: '5px solid #0984e3', transition: 'transform 0.2s' },
-  header: { display: 'flex', justifyContent: 'space-between', marginBottom: '10px' },
-  moduleTag: { fontSize: '12px', fontWeight: 'bold', color: '#636e72', textTransform: 'uppercase' },
-  completedTag: { fontSize: '12px', background: '#00b894', color: 'white', padding: '2px 8px', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '5px' },
-  title: { margin: '0 0 15px 0', color: '#2d3436', fontSize: '18px' },
-  footer: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  xpTag: { fontWeight: 'bold', color: '#0984e3', background: '#e3f2fd', padding: '5px 10px', borderRadius: '8px', fontSize: '14px' },
-  button: { border: 'none', color: 'white', padding: '8px 16px', borderRadius: '6px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px' }
 };
 
 export default CourseCard;

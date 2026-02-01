@@ -1,89 +1,60 @@
 /* =========================================
-   1. GLOBAL RESET & LAYOUT
+   1. THEME DEFINITIONS
    ========================================= */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+
+/* DEFAULT: GLASSMORPHISM (Light Mode) */
+:root {
+  --bg-body: linear-gradient(135deg, #e0c3fc 0%, #8ec5fc 100%); /* Soft Purple-Blue */
+  --bg-card: rgba(255, 255, 255, 0.65); /* Milky Glass */
+  --card-border: 1px solid rgba(255, 255, 255, 0.8);
+  --card-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  --text-primary: #2d3436;
+  --text-secondary: #636e72;
+  --accent-color: #6c5ce7; /* Purple */
+  --font-head: 'Segoe UI', sans-serif;
 }
+
+/* DARK MODE: CYBERPUNK (Futuristic) */
+[data-theme="dark"] {
+  --bg-body: #0a0a0f; /* Deepest Black/Blue */
+  --bg-card: #13131f; /* Dark Charcoal */
+  --card-border: 1px solid #2d2d44; /* Subtle Border */
+  --card-shadow: 0 0 20px rgba(0, 243, 255, 0.1); /* Cyan Glow */
+  --text-primary: #ffffff;
+  --text-secondary: #a0a0a0;
+  --accent-color: #00f3ff; /* Neon Cyan */
+  --font-head: 'Courier New', monospace; /* Hacker Font */
+}
+
+/* =========================================
+   2. GLOBAL RESET
+   ========================================= */
+* { box-sizing: border-box; margin: 0; padding: 0; transition: background 0.3s ease, color 0.3s ease; }
 
 html, body {
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  background-color: #f4f7f6; /* Default Light Background */
-  font-family: 'Segoe UI', 'Roboto', 'Helvetica', sans-serif;
-  overflow-x: hidden; /* Prevent horizontal scroll on mobile */
-  -webkit-font-smoothing: antialiased;
+  width: 100%; height: 100%;
+  background: var(--bg-body);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  font-family: var(--font-head);
+  overflow-x: hidden;
 }
 
-#root {
-  width: 100%;
-  min-height: 100vh;
-  display: block; /* CRITICAL: Allows pages to take full width */
-}
+#root { width: 100%; min-height: 100vh; display: block; }
 
 /* =========================================
-   2. KEYFRAME ANIMATIONS
+   3. THE MAGIC CLASS
    ========================================= */
-
-/* Fade In (For Modals, Toasts, and Page Loads) */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+/* Apply this class to ANY card to make it adapt to themes automatically */
+.glass-card {
+  background: var(--bg-card) !important; /* Force override inline styles */
+  border: var(--card-border);
+  box-shadow: var(--card-shadow);
+  border-radius: 16px;
+  color: var(--text-primary);
+  backdrop-filter: blur(10px);
 }
 
-/* Pop Effect (For Badges and Avatars) */
-@keyframes popIn {
-  0% { transform: scale(0.5); opacity: 0; }
-  60% { transform: scale(1.1); }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-/* Slide Up (For Cards and Lists) */
-@keyframes slideUp {
-  from { opacity: 0; transform: translateY(30px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* Shimmer/Pulse (Optional for loading states or attention) */
-@keyframes pulse {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.05); }
-  100% { transform: scale(1); }
-}
-
-/* =========================================
-   3. UTILITY CLASSES
-   ========================================= */
-
-/* Add these classes to any component to make it move! */
-
-.animate-fade {
-  animation: fadeIn 0.6s ease-out forwards;
-}
-
-.animate-pop {
-  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
-}
-
-/* Staggered Slides (Good for lists of courses) */
-.animate-slide-1 { opacity: 0; animation: slideUp 0.6s ease-out 0.1s forwards; }
-.animate-slide-2 { opacity: 0; animation: slideUp 0.6s ease-out 0.2s forwards; }
-.animate-slide-3 { opacity: 0; animation: slideUp 0.6s ease-out 0.3s forwards; }
-
-/* Scrollbar Styling (Makes it look modern) */
-::-webkit-scrollbar {
-  width: 8px;
-}
-::-webkit-scrollbar-track {
-  background: #f1f1f1;
-}
-::-webkit-scrollbar-thumb {
-  background: #bdc3c7;
-  border-radius: 4px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: #7f8c8d;
-}
+/* Animation Classes */
+@keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+.animate-slide-1 { animation: slideUp 0.5s ease-out 0.1s forwards; opacity: 0; }

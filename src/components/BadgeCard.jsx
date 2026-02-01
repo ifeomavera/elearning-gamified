@@ -4,33 +4,28 @@ import { FaLock, FaMedal } from 'react-icons/fa';
 const BadgeCard = ({ name, description, isUnlocked }) => {
   return (
     <div 
-      // ADD ANIMATION CLASS HERE
-      className="animate-pop"
+      className="glass-card animate-pop" // Uses shared style
       style={{
-        ...styles.card,
-        border: isUnlocked ? '2px solid #fdcb6e' : '1px solid #dfe6e9',
-        opacity: isUnlocked ? 1 : 0.6,
-        transform: isUnlocked ? 'scale(1)' : 'scale(0.98)'
+        display: 'flex', alignItems: 'center', gap: '15px', padding: '15px', 
+        transition: 'all 0.3s ease',
+        border: isUnlocked ? '1px solid var(--accent-color)' : '1px solid transparent',
+        opacity: isUnlocked ? 1 : 0.5
+        // REMOVED background: 'white'
       }}
     >
       <div style={{ 
-        ...styles.iconBox, 
-        background: isUnlocked ? '#fff59d' : '#f1f2f6' 
+        width: '50px', height: '50px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center',
+        background: isUnlocked ? 'rgba(255, 235, 59, 0.2)' : 'rgba(0,0,0,0.1)' 
       }}>
-        {isUnlocked ? <FaMedal size={24} color="#fbc02d" /> : <FaLock size={20} color="#b2bec3" />}
+        {isUnlocked ? <FaMedal size={24} color="#fbc02d" /> : <FaLock size={20} color="var(--text-secondary)" />}
       </div>
       
       <div>
-        <h4 style={{ margin: '0 0 5px 0', color: isUnlocked ? '#2d3436' : '#636e72' }}>{name}</h4>
-        <p style={{ margin: 0, fontSize: '12px', color: '#b2bec3' }}>{description}</p>
+        <h4 style={{ margin: '0 0 5px 0', color: 'var(--text-primary)' }}>{name}</h4>
+        <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)' }}>{description}</p>
       </div>
     </div>
   );
-};
-
-const styles = {
-  card: { display: 'flex', alignItems: 'center', gap: '15px', padding: '15px', borderRadius: '12px', background: 'white', transition: 'all 0.3s ease' },
-  iconBox: { width: '50px', height: '50px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }
 };
 
 export default BadgeCard;
