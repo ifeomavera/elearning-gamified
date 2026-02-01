@@ -1,23 +1,44 @@
 import React, { useState } from 'react';
 import { FaUserGraduate, FaChalkboardTeacher, FaLock, FaUser } from 'react-icons/fa';
+import axios from 'axios'; // <--- 1. Import Axios
 
 const Login = ({ onLogin, onNavigate }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState(''); // <--- 2. Error State
   const [isAdminLogin, setIsAdminLogin] = useState(false);
 
-  const handleSubmit = (e) => {
+  // --- 3. REAL BACKEND CONNECTION ---
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (username.trim()) {
-      onLogin(username, isAdminLogin);
-    } else {
-      alert("Please enter a username");
+    setError('');
+
+    try {
+      // Call the server
+      const res = await axios.post('http://localhost:5000/api/auth/login', {
+        username,
+        password
+      });
+
+      // Role Security Check
+      if (isAdminLogin && res.data.role !== 'admin') {
+        setError("This account is not an Admin.");
+        return;
+      }
+
+      // Success! Log them in
+      // We pass the role status to App.jsx so it knows where to send them
+      onLogin(res.data.username, res.data.role === 'admin');
+
+    } catch (err) {
+      // Show error from server (e.g., "Wrong password")
+      setError(err.response?.data?.message || "Invalid credentials");
     }
   };
 
   return (
     <div style={styles.container}>
-      {/* ANIMATED BACKGROUND CIRCLES with lower opacity for light mode */}
+      {/* ANIMATED BACKGROUND CIRCLES */}
       <div className="bg-shape1" style={{ opacity: 0.15 }}></div>
       <div className="bg-shape2" style={{ opacity: 0.15 }}></div>
 
@@ -42,8 +63,24 @@ const Login = ({ onLogin, onNavigate }) => {
           {isAdminLogin ? "Manage your curriculum" : "Gamify your learning journey"}
         </p>
         
+        {/* --- 4. ERROR MESSAGE DISPLAY --- */}
+        {error && (
+          <div style={{ 
+            color: '#ff7675', 
+            textAlign: 'center', 
+            fontSize: '14px', 
+            background: 'rgba(255, 118, 117, 0.1)', 
+            padding: '10px', 
+            borderRadius: '8px',
+            marginBottom: '15px',
+            border: '1px solid rgba(255, 118, 117, 0.2)'
+          }}>
+            {error}
+          </div>
+        )}
+
         {/* FORM */}
-        <form onSubmit={handleSubmit} style={{ marginTop: '30px' }}>
+        <form onSubmit={handleSubmit} style={{ marginTop: '10px' }}>
           
           {/* USERNAME INPUT */}
           <div style={styles.inputGroup}>
@@ -77,7 +114,7 @@ const Login = ({ onLogin, onNavigate }) => {
             </span>
           </div>
 
-          {/* BUTTON with forced white text for contrast */}
+          {/* BUTTON */}
           <button type="submit" className="btn-primary" style={{ 
             ...styles.button,
             background: isAdminLogin ? 'linear-gradient(135deg, #d63031 0%, #ff7675 100%)' : 'var(--accent-color)'
@@ -109,6 +146,7 @@ const Login = ({ onLogin, onNavigate }) => {
   );
 };
 
+// --- STYLES (Kept exactly as you had them) ---
 const styles = {
   container: {
     width: '100vw',
@@ -116,7 +154,7 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: 'var(--bg-primary)', // Use theme background
+    background: 'var(--bg-primary)',
     position: 'relative',
     overflow: 'hidden',
     padding: '20px',
@@ -130,12 +168,11 @@ const styles = {
     position: 'relative',
     zIndex: 10,
     borderRadius: '20px'
-    // Note: background and border are handled by the .glass-card class in CSS
   },
   iconWrapper: {
     width: '80px', height: '80px', margin: '0 auto', 
     borderRadius: '50%', 
-    background: 'var(--bg-secondary)', // Theme-aware icon background
+    background: 'var(--bg-secondary)',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
     boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
   },
@@ -167,10 +204,10 @@ const styles = {
   },
   input: {
     width: '100%',
-    padding: '15px 15px 15px 45px', // Padding left for icon
+    padding: '15px 15px 15px 45px',
     borderRadius: '10px',
     border: '1px solid var(--card-border)',
-    background: 'var(--input-bg)', // Theme-aware input background
+    background: 'var(--input-bg)',
     color: 'var(--text-primary)',
     fontSize: '16px',
     outline: 'none',
@@ -182,7 +219,7 @@ const styles = {
     width: '100%', 
     padding: '15px', 
     fontSize: '16px',
-    color: '#ffffff', // Force white text for good contrast
+    color: '#ffffff',
     border: 'none',
     borderRadius: '10px',
     cursor: 'pointer',

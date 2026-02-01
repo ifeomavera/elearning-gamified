@@ -10,22 +10,21 @@ import NotFound from './pages/NotFound';
 import LessonView from './pages/LessonView';
 import Forum from './pages/Forum';
 import Stats from './pages/Stats';
-import Toast from './components/Toast';
+import { Toaster, toast } from 'react-hot-toast';
+import axios from 'axios'; // <--- 1. IMPORT AXIOS
 
 function App() {
-  // 1. INSTANTLY LOAD USER & ROLE
+  // --- STATE ---
   const [user, setUser] = useState(() => localStorage.getItem('currentUser'));
   const [role, setRole] = useState(() => localStorage.getItem('currentRole') || 'student');
   const [avatar, setAvatar] = useState(() => localStorage.getItem('userAvatar') || "👨‍💻");
 
-  // 2. INSTANTLY LOAD THEME
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem('appTheme') || 'light';
     document.documentElement.setAttribute('data-theme', saved);
     return saved;
   });
 
-  // 3. INSTANTLY LOAD VIEW
   const [currentView, setCurrentView] = useState(() => {
     const saved = localStorage.getItem('currentView');
     if (saved === 'lesson') return 'dashboard';
@@ -34,11 +33,15 @@ function App() {
   });
 
   const [activeLesson, setActiveLesson] = useState(null);
-  const [toast, setToast] = useState(null);
 
-  const showToast = (message, type = 'success') => setToast({ message, type });
+  // Wrapper for toast to keep compatibility
+  const showToast = (message, type = 'success') => {
+    if (type === 'error') toast.error(message);
+    else if (type === 'info') toast(message, { icon: 'ℹ️' });
+    else toast.success(message);
+  };
 
-  // 4. THEME UPDATER
+  // --- EFFECTS ---
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('appTheme', theme);
@@ -63,7 +66,7 @@ function App() {
     localStorage.setItem('currentRole', userRole);
     localStorage.setItem('userAvatar', currentAvatar);
     
-    showToast(`Welcome back, ${username}!`);
+    toast.success(`Welcome back, ${username}!`);
     handleNavigate('dashboard'); 
   };
 
@@ -79,37 +82,43 @@ function App() {
     localStorage.removeItem('currentRole');
     localStorage.removeItem('currentView'); 
     setCurrentView('login');
-    showToast("Logged out successfully", "info");
+    toast.success("Logged out successfully");
   };
 
-  // --- LESSON LOGIC ---
   const handleStartLesson = (lesson) => {
     setActiveLesson(lesson);
     handleNavigate('lesson');
   };
 
-  const handleLessonComplete = (earnedXP) => {
-    const currentXP = parseInt(localStorage.getItem('studentXP') || '2350');
-    const newXP = currentXP + earnedXP;
-    localStorage.setItem('studentXP', newXP);
+  // --- 2. THE NEW GAME LOOP (Saves to Database) ---
+  const handleLessonComplete = async (earnedXP) => {
+    if (!activeLesson) return;
 
-    const savedCoursesStr = localStorage.getItem('appCourses');
-    if (savedCoursesStr && activeLesson) {
-      const courses = JSON.parse(savedCoursesStr);
-      const updatedCourses = courses.map(c => 
-        c.id === activeLesson.id ? { ...c, completed: true } : c
-      );
-      localStorage.setItem('appCourses', JSON.stringify(updatedCourses));
+    // Show loading spinner
+    const toastId = toast.loading("Saving progress...");
+
+    try {
+      // Send data to Backend
+      await axios.put(`http://localhost:5000/api/users/${user}/progress`, {
+        xpEarned: earnedXP,
+        courseId: activeLesson.id
+      });
+
+      // Success!
+      toast.success(`Lesson Completed! +${earnedXP} XP`, { id: toastId });
+      
+      // Go back to Dashboard (It will auto-refresh with new data)
+      handleNavigate('dashboard');
+
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to save progress. Check connection.", { id: toastId });
     }
-
-    showToast(`Lesson Completed! +${earnedXP} XP`, "success");
-    handleNavigate('dashboard');
   };
 
   // --- RENDER PAGE ---
   const renderPage = () => {
     if (user) {
-      // FIX: PASS THEME PROPS TO ADMIN DASHBOARD
       if (role === 'admin') {
         return (
           <AdminDashboard 
@@ -167,8 +176,8 @@ function App() {
 
   return (
     <>
+      <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
       {renderPage()}
-      {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </>
   );
 }
