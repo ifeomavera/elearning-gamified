@@ -15,8 +15,16 @@ const Stats = ({ onNavigate }) => {
     <div style={{ padding: '20px', minHeight: '100vh', background: 'var(--bg-body)' }}>
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
         
+        {/* HEADER */}
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: '30px' }}>
-          <button onClick={() => onNavigate('dashboard')} className="glass-card" style={{ width: '45px', height: '45px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginRight: '20px', color: 'var(--text-primary)' }}>
+          <button 
+            onClick={() => onNavigate('dashboard')} 
+            className="glass-card" 
+            style={{ 
+              width: '45px', height: '45px', borderRadius: '50%', 
+              display: 'flex', alignItems: 'center', justifyContent: 'center', 
+              cursor: 'pointer', marginRight: '20px', color: 'var(--text-primary)' 
+            }}>
             <FaArrowLeft size={18} />
           </button>
           <div>
@@ -25,53 +33,71 @@ const Stats = ({ onNavigate }) => {
           </div>
         </div>
 
-        {/* SUMMARY CARDS: Fixed Grid for Mobile stacking */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '20px', marginBottom: '40px' }}>
-          <div className="glass-card" style={{ padding: '25px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <FaFire size={35} color="#e17055" />
-            <h2 style={{ margin: '10px 0 0 0', color: 'var(--text-primary)' }}>7 Day</h2>
-            <span style={{ color: 'var(--text-secondary)' }}>Current Streak</span>
+        {/* SUMMARY CARDS: Responsive Flex Wrap */}
+        <div style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', // Auto-stacking
+          gap: '15px', 
+          marginBottom: '40px' 
+        }}>
+          <div className="glass-card" style={{ padding: '20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <FaFire size={30} color="#e17055" />
+            <h2 style={{ margin: '10px 0 0 0', color: 'var(--text-primary)', fontSize: '20px' }}>7 Day</h2>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Current Streak</span>
           </div>
-          <div className="glass-card" style={{ padding: '25px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <FaChartBar size={35} color="#0984e3" />
-            <h2 style={{ margin: '10px 0 0 0', color: 'var(--text-primary)' }}>1,250 XP</h2>
-            <span style={{ color: 'var(--text-secondary)' }}>Earned this week</span>
+          <div className="glass-card" style={{ padding: '20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <FaChartBar size={30} color="#0984e3" />
+            <h2 style={{ margin: '10px 0 0 0', color: 'var(--text-primary)', fontSize: '20px' }}>1,250 XP</h2>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Earned this week</span>
           </div>
-          <div className="glass-card" style={{ padding: '25px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <FaChartPie size={35} color="#00b894" />
-            <h2 style={{ margin: '10px 0 0 0', color: 'var(--text-primary)' }}>85%</h2>
-            <span style={{ color: 'var(--text-secondary)' }}>Quiz Accuracy</span>
+          <div className="glass-card" style={{ padding: '20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <FaChartPie size={30} color="#00b894" />
+            <h2 style={{ margin: '10px 0 0 0', color: 'var(--text-primary)', fontSize: '20px' }}>85%</h2>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Quiz Accuracy</span>
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '30px' }}>
-          <div className="glass-card" style={{ padding: '20px', minHeight: '350px' }}>
-            <h3 style={{ color: 'var(--text-primary)', marginBottom: '20px' }}>Weekly Activity</h3>
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={activityData}>
-                <XAxis dataKey="day" stroke="var(--text-secondary)" />
-                <YAxis stroke="var(--text-secondary)" />
-                <Tooltip contentStyle={{ backgroundColor: '#1e1e2e', border: 'none', borderRadius: '8px' }} />
-                <Bar dataKey="xp" fill="var(--accent-color)" radius={[5, 5, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="glass-card" style={{ padding: '20px', minHeight: '350px' }}>
-            <h3 style={{ color: 'var(--text-primary)', marginBottom: '20px' }}>Quiz Performance</h3>
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie data={accuracyData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                  {accuracyData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-            <div style={{ textAlign: 'center', marginTop: '10px', fontSize: '12px' }}>
-              <span style={{ color: '#00b894', marginRight: '15px' }}>● Correct</span>
-              <span style={{ color: '#d63031' }}>● Incorrect</span>
+        {/* CHARTS SECTION */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+          
+          {/* Bar Chart */}
+          <div className="glass-card" style={{ padding: '20px', minHeight: '300px' }}>
+            <h3 style={{ color: 'var(--text-primary)', marginBottom: '20px', fontSize: '18px' }}>Weekly Activity</h3>
+            <div style={{ width: '100%', height: '200px' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={activityData}>
+                  <XAxis dataKey="day" stroke="var(--text-secondary)" tick={{fontSize: 12}} />
+                  <YAxis stroke="var(--text-secondary)" tick={{fontSize: 12}} />
+                  <Tooltip contentStyle={{ backgroundColor: '#1e1e2e', border: 'none', borderRadius: '8px' }} />
+                  <Bar dataKey="xp" fill="var(--accent-color)" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
             </div>
           </div>
+
+          {/* Pie Chart */}
+          <div className="glass-card" style={{ padding: '20px', minHeight: '300px' }}>
+            <h3 style={{ color: 'var(--text-primary)', marginBottom: '20px', fontSize: '18px' }}>Quiz Performance</h3>
+            <div style={{ width: '100%', height: '200px' }}>
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={accuracyData} cx="50%" cy="50%" innerRadius={50} outerRadius={70} paddingAngle={5} dataKey="value">
+                    {accuracyData.map((entry, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <div style={{ textAlign: 'center', marginTop: '10px', fontSize: '12px', display: 'flex', justifyContent: 'center', gap: '15px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', color: 'var(--text-secondary)' }}>
+                <div style={{ width: 10, height: 10, background: '#00b894', borderRadius: '50%', marginRight: 5 }}></div> Correct
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', color: 'var(--text-secondary)' }}>
+                <div style={{ width: 10, height: 10, background: '#d63031', borderRadius: '50%', marginRight: 5 }}></div> Incorrect
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>

@@ -25,8 +25,11 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
 
   useEffect(() => {
     const fetchUserData = async () => {
-      // FIX: Only show loading spinner on the very first load
+      // FIX 1: INSTANT LOAD
+      // If we already have XP (meaning we loaded before), don't show the spinner.
+      // This stops the "Loading..." flash when you go back to dashboard.
       if (xp === 0) setLoading(true);
+      
       try {
         const res = await axios.get(`https://elearning-api-2tsf.onrender.com/api/users/${username}`);
         const data = res.data;
@@ -42,26 +45,32 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
         })));
         setLoading(false);
       } catch (err) {
+        console.error("Failed to load user data");
         setLoading(false);
       }
     };
     fetchUserData();
   }, [username]);
 
-  // FIX: Don't show "Loading Profile" if we already have data in memory
-  if (loading && xp === 0) return <div style={{padding: '50px', color: 'white', textAlign: 'center'}}>Loading Profile...</div>;
+  // Loading Screen
+  if (loading && xp === 0) {
+    return (
+        <div style={{height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)'}}>
+            <div className="spinner"></div> 
+        </div>
+    );
+  }
 
   return (
-    <div style={{ width: '100%', minHeight: '100vh', padding: '20px', display: 'flex', flexDirection: 'column', position: 'relative', overflowX: 'hidden' }}>
+    <div style={{ width: '100%', minHeight: '100vh', padding: '20px', display: 'flex', flexDirection: 'column', position: 'relative', overflowX: 'hidden', background: 'var(--bg-body)' }}>
       
       <style>{`
         .sidebar-glass {
-          background: rgba(255, 255, 255, 0.95);
-          backdrop-filter: blur(20px);
-          box-shadow: -10px 0 30px rgba(0,0,0,0.15);
+          background: rgba(255, 255, 255, 0.98);
+          box-shadow: -5px 0 25px rgba(0,0,0,0.2);
         }
         [data-theme='dark'] .sidebar-glass {
-          background: rgba(30, 30, 46, 0.95);
+          background: #1e1e2e;
           border-left: 1px solid rgba(255,255,255,0.1);
         }
         .menu-item {
@@ -70,58 +79,72 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
           cursor: pointer; transition: all 0.2s ease;
         }
         .menu-item:hover { background: rgba(108, 92, 231, 0.1); transform: translateX(5px); }
-        /* MOBILE FIXES */
+        
+        /* FIX 2: MOBILE LAYOUT */
         @media (max-width: 768px) {
           .responsive-flex-item { flex: 1 1 100% !important; }
+          .sidebar-mobile { width: 85% !important; max-width: 300px; }
         }
       `}</style>
 
-      <div style={{ width: '100%', maxWidth: '1200px', margin: '0 auto', padding: '0 10px' }}>
-        <header style={{ marginBottom: '30px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ width: '100%', maxWidth: '1200px', margin: '0 auto', padding: '0 5px' }}>
+        <header style={{ marginBottom: '25px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-            <div className="glass-card" onClick={() => onNavigate('profile')} style={{ fontSize: '35px', cursor: 'pointer', width: '55px', height: '55px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div className="glass-card" onClick={() => onNavigate('profile')} style={{ fontSize: '30px', cursor: 'pointer', width: '50px', height: '50px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%' }}>
               {avatar || "👨‍💻"}
             </div>
             <div>
-              <h1 style={{ fontSize: '22px', margin: 0 }}>Hello, {username}</h1>
-              <p style={{ margin: 0, fontSize: '13px', opacity: 0.7 }}>Let's learn something new!</p>
+              <h1 style={{ fontSize: '20px', margin: 0, color: 'var(--text-primary)' }}>Hello, {username}</h1>
+              <p style={{ margin: 0, fontSize: '13px', opacity: 0.7, color: 'var(--text-secondary)' }}>Let's learn something new!</p>
             </div>
           </div>
           
-          <button onClick={() => setIsMenuOpen(true)} className="glass-card" style={{ padding: '12px', cursor: 'pointer', fontSize: '20px', border: 'none', color: 'inherit' }}>
+          <button onClick={() => setIsMenuOpen(true)} className="glass-card" style={{ padding: '12px', cursor: 'pointer', fontSize: '20px', border: 'none', color: 'var(--text-primary)', borderRadius: '12px' }}>
             <FaBars />
           </button>
         </header>
 
-        <div className="glass-card" style={{ marginBottom: '30px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+        {/* Level & XP Section */}
+        <div className="glass-card" style={{ marginBottom: '25px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <XPBar currentXP={xp} level={level} />
           <div style={{ textAlign: 'right' }}>
-            <button onClick={() => onNavigate('stats')} style={{ background: 'transparent', border: '1px solid var(--accent-color)', color: 'var(--accent-color)', padding: '6px 16px', borderRadius: '20px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold' }}>
+            <button onClick={() => onNavigate('stats')} style={{ background: 'transparent', border: '1px solid var(--accent-color)', color: 'var(--accent-color)', padding: '8px 16px', borderRadius: '20px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
               <FaChartLine /> View Analytics
             </button>
           </div>
         </div>
 
-        <div onClick={() => onNavigate('leaderboard')} className="glass-card" style={{ padding: '20px', marginBottom: '40px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        {/* Leaderboard Teaser */}
+        <div onClick={() => onNavigate('leaderboard')} className="glass-card" style={{ padding: '20px', marginBottom: '30px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'linear-gradient(135deg, #74b9ff 0%, #0984e3 100%)', color: 'white', border: 'none' }}>
           <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
-            <FaTrophy size={24} color="var(--accent-color)" />
-            <div><h3 style={{margin: 0, fontSize: '18px'}}>Leaderboard</h3><p style={{margin: 0, fontSize: '14px', opacity: 0.9}}>Check your rank among peers</p></div>
+            <FaTrophy size={24} color="#ffeaa7" />
+            <div>
+                <h3 style={{margin: 0, fontSize: '18px'}}>Leaderboard</h3>
+                <p style={{margin: 0, fontSize: '13px', opacity: 0.9}}>Check your rank among peers</p>
+            </div>
           </div>
-          <span style={{fontWeight: 'bold', fontSize: '14px', background: 'var(--accent-color)', color: '#1e1e2e', padding: '8px 16px', borderRadius: '20px'}}>
+          <span style={{fontWeight: 'bold', fontSize: '14px', background: 'rgba(255,255,255,0.2)', color: 'white', padding: '8px 16px', borderRadius: '20px'}}>
             View &rarr;
           </span>
         </div>
 
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '30px', width: '100%' }}>
+        {/* Courses & Achievements Grid */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '25px', width: '100%' }}>
           <div className="responsive-flex-item" style={{ flex: '2 1 300px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}><FaGraduationCap color="var(--accent-color)" size={24} /><h3 style={{ margin: 0 }}>My Courses</h3></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' }}>
+                <FaGraduationCap color="var(--accent-color)" size={22} />
+                <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>My Courses</h3>
+            </div>
             {courses.map(course => (
               <CourseCard key={course.id} {...course} isCompleted={course.completed} onClick={() => onStartLesson(course)} />
             ))}
           </div>
 
           <div className="responsive-flex-item" style={{ flex: '1 1 250px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}><FaChartLine color="#e17055" size={24} /><h3 style={{ margin: 0 }}>Achievements</h3></div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' }}>
+                <FaTrophy color="#e17055" size={22} />
+                <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>Achievements</h3>
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               {badges.map(badge => <BadgeCard key={badge.id} {...badge} />)}
             </div>
@@ -129,25 +152,57 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
         </div>
       </div>
 
-      {/* FIXED SIDEBAR OVERLAY & DRAWER */}
-      <div onClick={() => setIsMenuOpen(false)} style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', zIndex: 9998, opacity: isMenuOpen ? 1 : 0, pointerEvents: isMenuOpen ? 'all' : 'none', transition: 'opacity 0.3s ease' }} />
+      {/* FIX 3: MOBILE SIDEBAR OVERLAY */}
+      {/* The Dark Background */}
+      <div 
+        onClick={() => setIsMenuOpen(false)} 
+        style={{ 
+            position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', 
+            background: 'rgba(0,0,0,0.6)', zIndex: 9998, 
+            opacity: isMenuOpen ? 1 : 0, 
+            pointerEvents: isMenuOpen ? 'all' : 'none', 
+            transition: 'opacity 0.3s ease',
+            backdropFilter: 'blur(2px)'
+        }} 
+      />
 
-      <div className="sidebar-glass" style={{ position: 'fixed', top: 0, right: isMenuOpen ? '0' : '-320px', width: '300px', height: '100%', zIndex: 9999, transition: 'right 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)', display: 'flex', flexDirection: 'column' }}>
+      {/* The Actual Sidebar Panel */}
+      <div 
+        className="sidebar-glass sidebar-mobile" 
+        style={{ 
+            position: 'fixed', top: 0, 
+            right: isMenuOpen ? '0' : '-100%', // Moves completely off-screen
+            width: '300px', // Default width for desktop
+            height: '100%', zIndex: 9999, 
+            transition: 'right 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 
+            display: 'flex', flexDirection: 'column' 
+        }}
+      >
         <div style={{ padding: '20px', display: 'flex', justifyContent: 'flex-end' }}>
-          <button onClick={() => setIsMenuOpen(false)} style={{ background: 'none', border: 'none', color: 'inherit', fontSize: '24px', cursor: 'pointer' }}><FaTimes /></button>
+          <button onClick={() => setIsMenuOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '24px', cursor: 'pointer' }}><FaTimes /></button>
         </div>
-        <div className="menu-header">
+        
+        <div style={{ padding: '0 25px 30px 25px', textAlign: 'center', borderBottom: '1px solid var(--card-border)' }}>
           <div style={{ fontSize: '60px', marginBottom: '10px' }}>{avatar || "👨‍💻"}</div>
-          <h2 style={{ margin: '0 0 5px 0', fontSize: '20px' }}>{username}</h2>
-          <span style={{ fontSize: '12px', background: 'var(--accent-color)', color: '#fff', padding: '3px 10px', borderRadius: '10px', fontWeight: 'bold' }}>Level {level} Student</span>
+          <h2 style={{ margin: '0 0 5px 0', fontSize: '20px', color: 'var(--text-primary)' }}>{username}</h2>
+          <span style={{ fontSize: '12px', background: 'var(--accent-color)', color: '#fff', padding: '4px 12px', borderRadius: '15px', fontWeight: 'bold' }}>Level {level} Student</span>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', padding: '0 15px' }}>
+        
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', padding: '20px' }}>
           <button onClick={() => { onNavigate('profile'); setIsMenuOpen(false); }} className="menu-item"><FaUser /> My Profile</button>
           <button onClick={() => { onNavigate('forum'); setIsMenuOpen(false); }} className="menu-item"><FaUsers /> Community</button>
           <button onClick={() => { onNavigate('credits'); setIsMenuOpen(false); }} className="menu-item"><FaInfoCircle /> Credits & Team</button>
-          <div style={{ height: '1px', background: 'rgba(128,128,128,0.2)', margin: '15px 10px' }}></div>
-          <button onClick={toggleTheme} className="menu-item">{currentTheme === 'light' ? <FaMoon /> : <FaSun color="#ffeb3b" />}{currentTheme === 'light' ? "Dark Mode" : "Light Mode"}</button>
-          <button onClick={onLogout} className="menu-item logout" style={{ marginTop: '20px' }}><FaSignOutAlt /> Log Out</button>
+          
+          <div style={{ height: '1px', background: 'var(--card-border)', margin: '15px 10px' }}></div>
+          
+          <button onClick={toggleTheme} className="menu-item">
+            {currentTheme === 'light' ? <FaMoon /> : <FaSun color="#ffeb3b" />}
+            {currentTheme === 'light' ? "Dark Mode" : "Light Mode"}
+          </button>
+          
+          <button onClick={onLogout} className="menu-item" style={{ marginTop: '20px', color: '#d63031' }}>
+            <FaSignOutAlt /> Log Out
+          </button>
         </div>
       </div>
     </div>

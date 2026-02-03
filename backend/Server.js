@@ -1,28 +1,33 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const mongoose = require('mongoose');
-const authRoute = require('./routes/auth');
-const userRoute = require('./routes/users'); // <--- NEW
+const userRoutes = require('./routes/users');
 
 dotenv.config();
 const app = express();
-const PORT = process.env.PORT || 5000;
 
+// THIS IS THE FIX: Explicitly trust your Vercel app
 app.use(cors({
-  origin: "https://elearning-gamified.vercel.app", 
-  methods: ["GET", "POST", "PUT", "DELETE"],
+  origin: [
+    'http://localhost:5173',                      // Your computer
+    'https://elearning-gamified.vercel.app',      // Your Live Site
+    'https://elearning-gamified-paulmasade-rgb.vercel.app' // Your Preview Site
+  ],
   credentials: true
 }));
+
 app.use(express.json());
 
-app.use('/api/auth', authRoute);
-app.use('/api/users', userRoute); // <--- NEW
-
+// Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('✅ MongoDB Connected'))
-  .catch((err) => console.error(err));
+  .then(() => console.log('✅ Connected to MongoDB Atlas'))
+  .catch((err) => console.error('❌ MongoDB Connection Error:', err));
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+// Routes
+app.use('/api/users', userRoutes);
+
+app.get('/', (req, res) => res.send('API is Running 🚀'));
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
