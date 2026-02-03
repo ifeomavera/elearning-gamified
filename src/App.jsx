@@ -10,8 +10,9 @@ import NotFound from './pages/NotFound';
 import LessonView from './pages/LessonView';
 import Forum from './pages/Forum';
 import Stats from './pages/Stats';
+import Credits from './pages/Credits'; // <--- 1. ADDED IMPORT HERE
 import { Toaster, toast } from 'react-hot-toast';
-import axios from 'axios'; // <--- 1. IMPORT AXIOS
+import axios from 'axios';
 
 function App() {
   // --- STATE ---
@@ -90,7 +91,7 @@ function App() {
     handleNavigate('lesson');
   };
 
-  // --- 2. THE NEW GAME LOOP (Saves to Database) ---
+  // --- THE NEW GAME LOOP (Saves to Database) ---
   const handleLessonComplete = async (earnedXP) => {
     if (!activeLesson) return;
 
@@ -161,6 +162,11 @@ function App() {
           return <Forum username={user} avatar={avatar} onNavigate={handleNavigate} />;
         case 'stats': 
           return <Stats onNavigate={handleNavigate} />;
+        
+        // --- 2. ADDED THE NEW ROUTE HERE ---
+        case 'credits':
+           return <Credits onNavigate={handleNavigate} />;
+
         default:
           return <NotFound onNavigate={handleNavigate} />;
       }

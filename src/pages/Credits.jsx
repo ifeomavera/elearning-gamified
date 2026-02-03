@@ -1,12 +1,13 @@
 import React from 'react';
+import { FaUserTie, FaCode, FaUniversity, FaArrowLeft } from 'react-icons/fa';
 
 const Credits = ({ onNavigate }) => {
   const team = {
-    supervisor: "Mrs. Daramola", // Update with her full surname when you get it!
+    supervisor: "Mrs. Daramola", 
     developers: [
       "Masade Osahon Paul",
-      "Member Name 2", // Replace these with your actual group members
-      "Member Name 3"
+      "Ezeka Ifeoma Vera",
+      "Okochi-Thompson Obarido Junior"
     ],
     university: "Babcock University",
     department: "Software Engineering",
@@ -14,42 +15,154 @@ const Credits = ({ onNavigate }) => {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 p-6">
-      <div className="bg-white shadow-xl rounded-2xl p-8 max-w-lg w-full text-center border-t-4 border-indigo-600">
-        <h1 className="text-2xl font-bold text-gray-800 mb-2">{team.project}</h1>
-        <p className="text-indigo-600 font-medium mb-6 uppercase tracking-wider text-sm">Project Credits</p>
+    <div style={{
+      minHeight: '100vh',
+      width: '100vw',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '20px',
+      background: 'linear-gradient(135deg, #a8c0ff 0%, #3f2b96 100%)', // Deep modern gradient
+      fontFamily: "'Inter', sans-serif",
+      overflowY: 'auto' // Ensures scrolling on small screens
+    }}>
+      
+      {/* MAIN GLASS CARD */}
+      <div className="glass-card" style={{
+        background: 'rgba(255, 255, 255, 0.85)', // More transparent
+        backdropFilter: 'blur(12px)', // The "Glass" effect
+        WebkitBackdropFilter: 'blur(12px)',
+        padding: '50px 40px',
+        borderRadius: '30px',
+        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+        maxWidth: '700px',
+        width: '100%',
+        textAlign: 'center',
+        border: '1px solid rgba(255, 255, 255, 0.4)'
+      }}>
         
-        <div className="space-y-6 text-left">
-          {/* Supervisor Section */}
-          <div className="bg-indigo-50 p-4 rounded-lg">
-            <h2 className="text-xs uppercase tracking-widest text-indigo-400 font-bold mb-1">Project Supervisor</h2>
-            <p className="text-lg font-semibold text-gray-800">{team.supervisor}</p>
+        {/* PROJECT TITLE */}
+        <div style={{ marginBottom: '40px' }}>
+          <h1 style={{ 
+            fontSize: '24px', 
+            fontWeight: '800',
+            color: '#1a1a2e', 
+            lineHeight: '1.4',
+            marginBottom: '10px',
+            textTransform: 'uppercase',
+            letterSpacing: '1px'
+          }}>
+            {team.project}
+          </h1>
+          <div style={{ height: '4px', width: '60px', background: 'linear-gradient(90deg, #6c5ce7, #a29bfe)', margin: '0 auto', borderRadius: '2px' }}></div>
+        </div>
+        
+        <div style={{ display: 'grid', gap: '25px', textAlign: 'left' }}>
+          
+          {/* SUPERVISOR CARD */}
+          <div style={{ 
+            background: 'linear-gradient(to right, rgba(108, 92, 231, 0.1), rgba(255,255,255,0.5))', 
+            padding: '20px 30px', 
+            borderRadius: '16px', 
+            display: 'flex',
+            alignItems: 'center',
+            gap: '20px',
+            borderLeft: '5px solid #6c5ce7'
+          }}>
+            <div style={{ background: '#6c5ce7', color: 'white', padding: '12px', borderRadius: '50%' }}>
+               <FaUserTie size={20} />
+            </div>
+            <div>
+              <h2 style={{ fontSize: '12px', textTransform: 'uppercase', color: '#6c5ce7', fontWeight: 'bold', marginBottom: '4px', letterSpacing: '1px' }}>
+                Project Supervisor
+              </h2>
+              <p style={{ fontSize: '20px', fontWeight: '700', color: '#2d3436', margin: 0 }}>
+                {team.supervisor}
+              </p>
+            </div>
           </div>
 
-          {/* Developers Section */}
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <h2 className="text-xs uppercase tracking-widest text-gray-400 font-bold mb-2">Development Team</h2>
-            <ul className="list-disc list-inside text-gray-700 font-medium space-y-1">
+          {/* TEAM CARD */}
+          <div style={{ 
+            background: 'white', 
+            padding: '30px', 
+            borderRadius: '20px', 
+            boxShadow: '0 4px 15px rgba(0,0,0,0.05)' 
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px', borderBottom: '1px solid #f1f2f6', paddingBottom: '15px' }}>
+              <FaCode color="#e17055" size={18} />
+              <h2 style={{ fontSize: '13px', textTransform: 'uppercase', color: '#636e72', fontWeight: 'bold', margin: 0 }}>
+                Development Team
+              </h2>
+            </div>
+            
+            <div style={{ display: 'grid', gap: '12px' }}>
               {team.developers.map((dev, index) => (
-                <li key={index}>{dev}</li>
+                <div key={index} style={{ 
+                  padding: '12px 15px', 
+                  background: '#f8f9fa',
+                  borderRadius: '10px',
+                  color: '#2d3436',
+                  fontWeight: '600',
+                  fontSize: '16px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  transition: 'transform 0.2s ease',
+                  cursor: 'default'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.transform = 'translateX(5px)'}
+                onMouseOut={(e) => e.currentTarget.style.transform = 'translateX(0)'}
+                >
+                  <span style={{ color: '#b2bec3', fontSize: '12px' }}>0{index + 1}</span>
+                  {dev}
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
 
-          {/* Institution Section */}
-          <div className="px-4">
-            <h2 className="text-xs uppercase tracking-widest text-gray-400 font-bold mb-1">Institution</h2>
-            <p className="text-md text-gray-700">{team.university}</p>
-            <p className="text-sm text-gray-500 italic">{team.department}</p>
+          {/* INSTITUTION FOOTER */}
+          <div style={{ textAlign: 'center', marginTop: '20px', opacity: 0.7 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginBottom: '5px' }}>
+              <FaUniversity />
+              <p style={{ fontSize: '15px', fontWeight: 'bold', margin: 0 }}>{team.university}</p>
+            </div>
+            <p style={{ fontSize: '13px', fontStyle: 'italic', margin: 0 }}>{team.department}</p>
           </div>
+
         </div>
 
+        {/* GLOWING ACTION BUTTON */}
         <button 
           onClick={() => onNavigate('dashboard')}
-          className="mt-8 w-full py-3 bg-indigo-600 text-white font-bold rounded-xl hover:bg-indigo-700 transition-all shadow-lg"
+          style={{
+            marginTop: '40px',
+            padding: '16px 40px',
+            background: 'linear-gradient(45deg, #6c5ce7, #a29bfe)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '50px',
+            fontSize: '16px',
+            fontWeight: 'bold',
+            cursor: 'pointer',
+            transition: 'all 0.3s ease',
+            boxShadow: '0 10px 20px rgba(108, 92, 231, 0.4)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '10px'
+          }}
+          onMouseOver={(e) => {
+            e.currentTarget.style.transform = 'translateY(-3px)';
+            e.currentTarget.style.boxShadow = '0 15px 30px rgba(108, 92, 231, 0.5)';
+          }}
+          onMouseOut={(e) => {
+            e.currentTarget.style.transform = 'translateY(0)';
+            e.currentTarget.style.boxShadow = '0 10px 20px rgba(108, 92, 231, 0.4)';
+          }}
         >
-          Return to Dashboard
+          <FaArrowLeft /> Return to Dashboard
         </button>
+
       </div>
     </div>
   );

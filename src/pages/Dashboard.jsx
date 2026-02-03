@@ -2,8 +2,7 @@ import React, { useState, useEffect } from 'react';
 import XPBar from '../components/XPBar';
 import BadgeCard from '../components/BadgeCard';
 import CourseCard from '../components/CourseCard';
-// Added FaBars (Menu) and FaTimes (Close X)
-import { FaGraduationCap, FaChartLine, FaTrophy, FaSignOutAlt, FaSun, FaMoon, FaUsers, FaBars, FaTimes, FaInfoCircle } from 'react-icons/fa';
+import { FaGraduationCap, FaChartLine, FaTrophy, FaSignOutAlt, FaSun, FaMoon, FaUsers, FaBars, FaTimes, FaInfoCircle, FaUser } from 'react-icons/fa';
 import axios from 'axios';
 
 const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, currentTheme, onStartLesson }) => {
@@ -12,7 +11,7 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
   const [xp, setXP] = useState(0); 
   const [level, setLevel] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [isMenuOpen, setIsMenuOpen] = useState(false); // <--- NEW STATE FOR MENU
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   // --- DATA ---
   const [courses, setCourses] = useState([
@@ -56,7 +55,50 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
   return (
     <div style={{ width: '100%', minHeight: '100vh', padding: '20px', display: 'flex', flexDirection: 'column', position: 'relative', overflowX: 'hidden' }}>
       
-      {/* --- 1. CLEAN HEADER --- */}
+      {/* --- INJECT CUSTOM CSS STYLES --- */}
+      <style>{`
+        .sidebar-glass {
+          background: rgba(255, 255, 255, 0.95);
+          backdrop-filter: blur(20px);
+          box-shadow: -10px 0 30px rgba(0,0,0,0.15);
+        }
+        [data-theme='dark'] .sidebar-glass {
+          background: rgba(30, 30, 46, 0.95);
+          border-left: 1px solid rgba(255,255,255,0.1);
+        }
+        .menu-item {
+          display: flex;
+          align-items: center;
+          gap: 15px;
+          width: 100%;
+          padding: 15px 20px;
+          border-radius: 12px;
+          border: none;
+          background: transparent;
+          color: var(--text-primary);
+          font-size: 16px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .menu-item:hover {
+          background: rgba(108, 92, 231, 0.1); /* Light purple tint */
+          color: var(--accent-color);
+          transform: translateX(5px);
+        }
+        .menu-item.logout:hover {
+          background: rgba(255, 118, 117, 0.1); /* Light red tint */
+          color: #ff7675;
+        }
+        .menu-header {
+          padding: 20px;
+          margin-bottom: 20px;
+          border-bottom: 1px solid rgba(128,128,128,0.2);
+          text-align: center;
+        }
+      `}</style>
+
+      {/* --- 1. HEADER (Kept Simple) --- */}
       <div style={{ width: '100%', maxWidth: '1200px', margin: '0 auto', padding: '0 10px' }}>
         <header style={{ 
           marginBottom: '30px', 
@@ -64,38 +106,34 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
           justifyContent: 'space-between', 
           alignItems: 'center'
         }}>
-          {/* LEFT: User Info (Essentials) */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
             <div 
               className="glass-card"
               onClick={() => onNavigate('profile')} 
-              style={{ fontSize: '40px', cursor: 'pointer', width: '60px', height: '60px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              style={{ fontSize: '35px', cursor: 'pointer', width: '55px', height: '55px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
               {avatar || "👨‍💻"}
             </div>
             <div>
-              <h1 style={{ fontSize: '24px', margin: 0 }}>
-                Welcome, {username}
-              </h1>
-              <p style={{ margin: 0, fontSize: '14px', opacity: 0.8 }}>Ready to learn?</p>
+              <h1 style={{ fontSize: '22px', margin: 0 }}>Hello, {username}</h1>
+              <p style={{ margin: 0, fontSize: '13px', opacity: 0.7 }}>Let's learn something new!</p>
             </div>
           </div>
           
-          {/* RIGHT: Hamburger Menu Button */}
           <button 
             onClick={() => setIsMenuOpen(true)} 
             className="glass-card" 
-            style={{ padding: '12px', cursor: 'pointer', fontSize: '20px', color: 'var(--text-primary)' }}
+            style={{ padding: '12px', cursor: 'pointer', fontSize: '20px', color: 'var(--text-primary)', border: 'none' }}
           >
             <FaBars />
           </button>
         </header>
 
-        {/* --- 2. MAIN DASHBOARD CONTENT --- */}
+        {/* --- 2. DASHBOARD CONTENT --- */}
         <div className="glass-card" style={{ marginBottom: '30px', padding: '15px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <XPBar currentXP={xp} level={level} />
           <div style={{ textAlign: 'right' }}>
-            <button onClick={() => onNavigate('stats')} style={{ background: 'transparent', border: '1px solid var(--accent-color)', color: 'var(--accent-color)', padding: '5px 15px', borderRadius: '20px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+            <button onClick={() => onNavigate('stats')} style={{ background: 'transparent', border: '1px solid var(--accent-color)', color: 'var(--accent-color)', padding: '6px 16px', borderRadius: '20px', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
               <FaChartLine /> View Analytics
             </button>
           </div>
@@ -106,9 +144,9 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
             <div style={{background: 'rgba(255,255,255,0.2)', padding: '12px', borderRadius: '50%'}}><FaTrophy size={24} color="var(--accent-color)" /></div>
             <div><h3 style={{margin: 0, fontSize: '18px'}}>Leaderboard</h3><p style={{margin: 0, fontSize: '14px', opacity: 0.9}}>Check your rank among peers</p></div>
           </div>
-<span style={{fontWeight: 'bold', fontSize: '14px', background: 'var(--accent-color)', color: '#1e1e2e', padding: '8px 16px', borderRadius: '20px', whiteSpace: 'nowrap'}}>
-  View &rarr;
-</span>
+          <span style={{fontWeight: 'bold', fontSize: '14px', background: 'var(--accent-color)', color: '#1e1e2e', padding: '8px 16px', borderRadius: '20px', whiteSpace: 'nowrap'}}>
+            View &rarr;
+          </span>
         </div>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '30px', width: '100%' }}>
@@ -133,89 +171,78 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
         </div>
       </div>
 
-      {/* --- 3. SLIDE-OUT MENU OVERLAY --- */}
-      {isMenuOpen && (
-        <div 
-          onClick={() => setIsMenuOpen(false)} 
-          style={{
-            position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', 
-            background: 'rgba(0,0,0,0.5)', zIndex: 998, backdropFilter: 'blur(3px)'
-          }}
-        />
-      )}
+      {/* --- 3. PREMIUM SIDEBAR MENU --- */}
+      {/* Overlay */}
+      <div 
+        onClick={() => setIsMenuOpen(false)} 
+        style={{
+          position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', 
+          background: 'rgba(0,0,0,0.6)', zIndex: 998, 
+          opacity: isMenuOpen ? 1 : 0,
+          pointerEvents: isMenuOpen ? 'all' : 'none',
+          transition: 'opacity 0.3s ease'
+        }}
+      />
 
-      {/* --- 4. THE SIDEBAR MENU --- */}
-      <div style={{
+      {/* Drawer */}
+      <div className="sidebar-glass" style={{
         position: 'fixed',
         top: 0,
-        right: isMenuOpen ? '0' : '-300px', // Slide in/out logic
-        width: '280px',
+        right: isMenuOpen ? '0' : '-320px', // Hides off-screen
+        width: '300px',
         height: '100%',
-        background: 'var(--card-bg)', // Matches your theme
-        boxShadow: '-5px 0 15px rgba(0,0,0,0.2)',
         zIndex: 999,
-        transition: 'right 0.3s ease-in-out',
-        padding: '25px',
+        transition: 'right 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)', // Smooth bounce effect
         display: 'flex',
-        flexDirection: 'column',
-        backdropFilter: 'blur(10px)',
-        borderLeft: '1px solid var(--card-border)'
+        flexDirection: 'column'
       }}>
         
-        {/* Close Button */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '30px' }}>
-          <button onClick={() => setIsMenuOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-primary)', fontSize: '24px', cursor: 'pointer' }}>
+        {/* Close Button Area */}
+        <div style={{ padding: '20px', display: 'flex', justifyContent: 'flex-end' }}>
+          <button onClick={() => setIsMenuOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-primary)', fontSize: '24px', cursor: 'pointer', opacity: 0.7 }}>
             <FaTimes />
           </button>
         </div>
 
+        {/* Profile Header (INSIDE Menu) */}
+        <div className="menu-header">
+          <div style={{ fontSize: '60px', marginBottom: '10px' }}>{avatar || "👨‍💻"}</div>
+          <h2 style={{ margin: '0 0 5px 0', fontSize: '20px' }}>{username}</h2>
+          <span style={{ fontSize: '12px', background: 'var(--accent-color)', color: '#fff', padding: '3px 10px', borderRadius: '10px', fontWeight: 'bold' }}>
+            Level {level} Student
+          </span>
+        </div>
+
         {/* Menu Items */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <p style={{ fontSize: '12px', textTransform: 'uppercase', color: 'gray', marginBottom: '5px' }}>Menu</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', padding: '0 15px' }}>
           
-          <button onClick={() => { onNavigate('profile'); setIsMenuOpen(false); }} className="menu-btn" style={menuBtnStyle}>
-             👤 My Profile
+          <button onClick={() => { onNavigate('profile'); setIsMenuOpen(false); }} className="menu-item">
+             <FaUser /> My Profile
           </button>
           
-          <button onClick={() => { onNavigate('forum'); setIsMenuOpen(false); }} className="menu-btn" style={menuBtnStyle}>
-            <FaUsers color="var(--accent-color)" /> Community
+          <button onClick={() => { onNavigate('forum'); setIsMenuOpen(false); }} className="menu-item">
+            <FaUsers /> Community
           </button>
 
-          <button onClick={() => { onNavigate('credits'); setIsMenuOpen(false); }} className="menu-btn" style={menuBtnStyle}>
-            <FaInfoCircle color="#3498db" /> Credits & Team
+          <button onClick={() => { onNavigate('credits'); setIsMenuOpen(false); }} className="menu-item">
+            <FaInfoCircle /> Credits & Team
           </button>
 
-          <div style={{ height: '1px', background: 'var(--card-border)', margin: '10px 0' }}></div>
+          <div style={{ height: '1px', background: 'rgba(128,128,128,0.2)', margin: '15px 10px' }}></div>
 
-          <button onClick={toggleTheme} className="menu-btn" style={menuBtnStyle}>
+          <button onClick={toggleTheme} className="menu-item">
             {currentTheme === 'light' ? <FaMoon /> : <FaSun color="#ffeb3b" />}
-            {currentTheme === 'light' ? "Switch to Dark" : "Switch to Light"}
+            {currentTheme === 'light' ? "Dark Mode" : "Light Mode"}
           </button>
           
-          <button onClick={onLogout} className="menu-btn" style={{ ...menuBtnStyle, color: '#ff7675', fontWeight: 'bold' }}>
-            <FaSignOutAlt /> Logout
+          <button onClick={onLogout} className="menu-item logout" style={{ marginTop: '20px' }}>
+            <FaSignOutAlt /> Log Out
           </button>
         </div>
       </div>
 
     </div>
   );
-};
-
-// Simple style object to keep the code clean
-const menuBtnStyle = {
-  background: 'transparent',
-  border: 'none',
-  padding: '12px',
-  textAlign: 'left',
-  fontSize: '16px',
-  color: 'var(--text-primary)',
-  cursor: 'pointer',
-  display: 'flex',
-  alignItems: 'center',
-  gap: '12px',
-  borderRadius: '8px',
-  transition: 'background 0.2s'
 };
 
 export default Dashboard;
