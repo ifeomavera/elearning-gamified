@@ -96,9 +96,18 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
           border-bottom: 1px solid rgba(128,128,128,0.2);
           text-align: center;
         }
+        /* MOBILE FIXES */
+        @media (max-width: 768px) {
+          .stats-grid {
+            grid-template-columns: 1fr !important; /* Force single column on mobile */
+          }
+          .responsive-flex-item {
+            flex: 1 1 100% !important; /* Stack items fully on mobile */
+          }
+        }
       `}</style>
 
-      {/* --- 1. HEADER (Kept Simple) --- */}
+      {/* --- 1. HEADER --- */}
       <div style={{ width: '100%', maxWidth: '1200px', margin: '0 auto', padding: '0 10px' }}>
         <header style={{ 
           marginBottom: '30px', 
@@ -149,8 +158,11 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
           </span>
         </div>
 
+        {/* Responsive Grid for Courses and Achievements */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '30px', width: '100%' }}>
-          <div style={{ flex: '2 1 400px', width: '100%' }}>
+          
+          {/* Courses Section - Adjusted flex-basis for mobile */}
+          <div className="responsive-flex-item" style={{ flex: '2 1 300px', width: '100%' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
               <FaGraduationCap color="var(--accent-color)" size={24} />
               <h3 style={{ margin: 0 }}>My Courses</h3>
@@ -159,7 +171,9 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
               <CourseCard key={course.id} {...course} isCompleted={course.completed} onClick={() => onStartLesson(course)} />
             ))}
           </div>
-          <div style={{ flex: '1 1 300px', width: '100%' }}>
+
+          {/* Achievements Section - Adjusted flex-basis for mobile */}
+          <div className="responsive-flex-item" style={{ flex: '1 1 250px', width: '100%' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '20px' }}>
               <FaChartLine color="#e17055" size={24} />
               <h3 style={{ margin: 0 }}>Achievements</h3>
@@ -171,28 +185,29 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
         </div>
       </div>
 
-      {/* --- 3. PREMIUM SIDEBAR MENU --- */}
-      {/* Overlay */}
+      {/* --- 3. PREMIUM SIDEBAR MENU (FIXED Z-INDEX) --- */}
+      {/* Overlay - Z-index increased to 9998 */}
       <div 
         onClick={() => setIsMenuOpen(false)} 
         style={{
           position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', 
-          background: 'rgba(0,0,0,0.6)', zIndex: 998, 
+          background: 'rgba(0,0,0,0.6)', 
+          zIndex: 9998, 
           opacity: isMenuOpen ? 1 : 0,
           pointerEvents: isMenuOpen ? 'all' : 'none',
           transition: 'opacity 0.3s ease'
         }}
       />
 
-      {/* Drawer */}
+      {/* Drawer - Z-index increased to 9999 */}
       <div className="sidebar-glass" style={{
         position: 'fixed',
         top: 0,
-        right: isMenuOpen ? '0' : '-320px', // Hides off-screen
+        right: isMenuOpen ? '0' : '-320px', 
         width: '300px',
         height: '100%',
-        zIndex: 999,
-        transition: 'right 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)', // Smooth bounce effect
+        zIndex: 9999, 
+        transition: 'right 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)', 
         display: 'flex',
         flexDirection: 'column'
       }}>
