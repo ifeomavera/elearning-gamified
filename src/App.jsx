@@ -10,7 +10,7 @@ import NotFound from './pages/NotFound';
 import LessonView from './pages/LessonView';
 import Forum from './pages/Forum';
 import Stats from './pages/Stats';
-import Credits from './pages/Credits'; // <--- 1. ADDED IMPORT HERE
+import Credits from './pages/Credits';
 import { Toaster, toast } from 'react-hot-toast';
 import axios from 'axios';
 
@@ -35,14 +35,12 @@ function App() {
 
   const [activeLesson, setActiveLesson] = useState(null);
 
-  // Wrapper for toast to keep compatibility
   const showToast = (message, type = 'success') => {
     if (type === 'error') toast.error(message);
     else if (type === 'info') toast(message, { icon: 'ℹ️' });
     else toast.success(message);
   };
 
-  // --- EFFECTS ---
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('appTheme', theme);
@@ -50,7 +48,6 @@ function App() {
 
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
-  // --- HANDLERS ---
   const handleNavigate = (view) => {
     setCurrentView(view);
     localStorage.setItem('currentView', view);
@@ -60,6 +57,8 @@ function App() {
     setUser(username);
     const userRole = isAdmin ? 'admin' : 'student';
     setRole(userRole);
+    
+    // Default avatar if none exists
     const currentAvatar = localStorage.getItem('userAvatar') || "👨‍💻";
     setAvatar(currentAvatar);
     
@@ -91,29 +90,27 @@ function App() {
     handleNavigate('lesson');
   };
 
-  // --- THE NEW GAME LOOP (Saves to Database) ---
+  // --- GAME LOOP (FIXED URL) ---
   const handleLessonComplete = async (earnedXP) => {
     if (!activeLesson) return;
 
-    // Show loading spinner
     const toastId = toast.loading("Saving progress...");
 
     try {
-      // Send data to Backend
-      await axios.put(`https://elearning-api-2tsf.onrender.com/api/users/${user}/progress`, {
+      // ✅ FIX: Use the Environment Variable (Localhost or Render)
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+      await axios.put(`${apiUrl}/api/users/${user}/progress`, {
         xpEarned: earnedXP,
         courseId: activeLesson.id
       });
 
-      // Success!
       toast.success(`Lesson Completed! +${earnedXP} XP`, { id: toastId });
-      
-      // Go back to Dashboard (It will auto-refresh with new data)
       handleNavigate('dashboard');
 
     } catch (err) {
       console.error(err);
-      toast.error("Failed to save progress. Check connection.", { id: toastId });
+      toast.error("Failed to save progress.", { id: toastId });
     }
   };
 
@@ -162,11 +159,8 @@ function App() {
           return <Forum username={user} avatar={avatar} onNavigate={handleNavigate} />;
         case 'stats': 
           return <Stats onNavigate={handleNavigate} />;
-        
-        // --- 2. ADDED THE NEW ROUTE HERE ---
         case 'credits':
            return <Credits onNavigate={handleNavigate} />;
-
         default:
           return <NotFound onNavigate={handleNavigate} />;
       }

@@ -1,30 +1,32 @@
 import React, { useState } from 'react';
-import { FaUserPlus, FaEnvelope, FaLock, FaUser } from 'react-icons/fa';
+import { FaUserPlus, FaEnvelope, FaLock, FaUser, FaEye, FaEyeSlash } from 'react-icons/fa'; 
 import axios from 'axios';
-import toast from 'react-hot-toast'; // <--- IMPORT TOAST
+import toast from 'react-hot-toast'; 
 
 const Register = ({ onSignUp, onNavigate }) => {
   const [formData, setFormData] = useState({ username: '', email: '', password: '' });
+  const [showPassword, setShowPassword] = useState(false); 
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // 1. Show loading spinner
     const toastId = toast.loading('Creating your account...');
 
     try {
-      const res = await axios.post('https://elearning-api-2tsf.onrender.com/api/auth/register', {
+      // ✅ THE FIX: Use the Environment Variable
+      // This reads from your .env file locally, and Vercel settings when live.
+      const apiUrl = import.meta.env.VITE_API_URL; 
+      
+      const res = await axios.post(`${apiUrl}/api/auth/register`, {
         username: formData.username,
         email: formData.email,
         password: formData.password
       });
 
-      // 2. Success!
       toast.success("Account created successfully!", { id: toastId });
       onSignUp(res.data.username); 
 
     } catch (err) {
-      // 3. Error!
       const errorMessage = err.response?.data?.message || "Registration failed";
       toast.error(errorMessage, { id: toastId });
     }
@@ -70,11 +72,28 @@ const Register = ({ onSignUp, onNavigate }) => {
           <div style={styles.inputGroup}>
             <FaLock style={styles.inputIcon} />
             <input 
-              type="password" placeholder="Password" required
+              type={showPassword ? "text" : "password"} 
+              placeholder="Password" required
               value={formData.password}
               onChange={(e) => setFormData({...formData, password: e.target.value})}
-              style={styles.input}
+              style={styles.input} 
             />
+            
+            <span 
+              onClick={() => setShowPassword(!showPassword)}
+              style={styles.eyeIcon}
+            >
+              {showPassword ? <FaEyeSlash /> : <FaEye />}
+            </span>
+          </div>
+
+          <div style={{ textAlign: 'right', marginBottom: '15px', marginTop: '-10px' }}>
+             <span 
+               style={{ color: 'var(--text-secondary)', fontSize: '12px', cursor: 'pointer' }}
+               onClick={() => onNavigate('forgot-password')} 
+             >
+               Forgot Password?
+             </span>
           </div>
 
           <button type="submit" className="btn-primary" style={styles.button}>
@@ -99,9 +118,13 @@ const styles = {
   subtitle: { color: 'var(--text-secondary)', textAlign: 'center', marginBottom: '10px', fontSize: '14px' },
   inputGroup: { position: 'relative', marginBottom: '15px' },
   inputIcon: { position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)', zIndex: 1 },
-  input: { width: '100%', padding: '12px 15px 12px 40px', borderRadius: '10px', border: '1px solid var(--card-border)', background: 'var(--input-bg)', color: 'var(--text-primary)', fontSize: '15px', outline: 'none' },
+  
+  input: { width: '100%', padding: '12px 45px 12px 40px', borderRadius: '10px', border: '1px solid var(--card-border)', background: 'var(--input-bg)', color: 'var(--text-primary)', fontSize: '15px', outline: 'none' },
+  
   button: { width: '100%', padding: '14px', fontSize: '16px', color: '#fff', border: 'none', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold', background: 'var(--accent-color)', marginTop: '10px' },
-  link: { marginLeft: '5px', cursor: 'pointer', fontWeight: 'bold', color: 'var(--accent-color)' }
+  link: { marginLeft: '5px', cursor: 'pointer', fontWeight: 'bold', color: 'var(--accent-color)' },
+
+  eyeIcon: { position: 'absolute', right: '15px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-secondary)', cursor: 'pointer', zIndex: 10 }
 };
 
 export default Register;

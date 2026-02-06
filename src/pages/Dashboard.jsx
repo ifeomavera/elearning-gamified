@@ -25,39 +25,93 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
 
   useEffect(() => {
     const fetchUserData = async () => {
-      // FIX 1: INSTANT LOAD
-      // If we already have XP (meaning we loaded before), don't show the spinner.
-      // This stops the "Loading..." flash when you go back to dashboard.
+      // Prevent loading flash if data exists
       if (xp === 0) setLoading(true);
       
       try {
-        const res = await axios.get(`https://elearning-api-2tsf.onrender.com/api/users/${username}`);
+        // ✅ FIX: Use the Environment Variable (Localhost or Render)
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        
+        const res = await axios.get(`${apiUrl}/api/users/${username}`);
         const data = res.data;
+
         setXP(data.xp || 0);
         setLevel(data.level || 1);
+
+        // ✅ SAFETY CHECK: Ensure arrays exist before using .includes()
+        const userBadges = data.badges || [];
+        const userCourses = data.completedCourses || [];
+
         setBadges(prev => prev.map(b => ({
           ...b,
-          isUnlocked: data.badges.includes(b.name) || (b.name === "Early Bird" && (data.xp || 0) >= 1000)
+          isUnlocked: userBadges.includes(b.name) || (b.name === "Early Bird" && (data.xp || 0) >= 1000)
         })));
+
         setCourses(prev => prev.map(c => ({
           ...c,
-          completed: data.completedCourses?.includes(c.id.toString()) || false
+          completed: userCourses.includes(c.id.toString()) || false
         })));
+
         setLoading(false);
       } catch (err) {
-        console.error("Failed to load user data");
+        console.error("Failed to load user data", err);
         setLoading(false);
       }
     };
     fetchUserData();
   }, [username]);
 
-  // Loading Screen
+  // --- IMPROVED LOADING SCREEN ---
   if (loading && xp === 0) {
     return (
-        <div style={{height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-primary)'}}>
-            <div className="spinner"></div> 
-        </div>
+      <div style={{
+        height: '100vh', 
+        width: '100vw', 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        background: 'var(--bg-body)', 
+        position: 'fixed', 
+        top: 0,
+        left: 0,
+        zIndex: 9999 
+      }}>
+        {/* Embedded CSS for the Animation */}
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
+          }
+        `}</style>
+
+        {/* The Spinner Ring */}
+        <div style={{
+          width: '60px',
+          height: '60px',
+          border: '6px solid var(--card-border)', 
+          borderTop: '6px solid var(--accent-color)', 
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite',
+          marginBottom: '20px'
+        }}></div>
+
+        {/* The Text */}
+        <h3 style={{ 
+          color: 'var(--text-primary)', 
+          fontFamily: 'var(--font-head)',
+          fontSize: '18px',
+          letterSpacing: '1px',
+          animation: 'pulse 1.5s ease-in-out infinite'
+        }}>
+          Syncing Mission Data...
+        </h3>
+      </div>
     );
   }
 
@@ -80,7 +134,6 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
         }
         .menu-item:hover { background: rgba(108, 92, 231, 0.1); transform: translateX(5px); }
         
-        /* FIX 2: MOBILE LAYOUT */
         @media (max-width: 768px) {
           .responsive-flex-item { flex: 1 1 100% !important; }
           .sidebar-mobile { width: 85% !important; max-width: 300px; }
@@ -104,7 +157,6 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
           </button>
         </header>
 
-        {/* Level & XP Section */}
         <div className="glass-card" style={{ marginBottom: '25px', padding: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <XPBar currentXP={xp} level={level} />
           <div style={{ textAlign: 'right' }}>
@@ -114,7 +166,6 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
           </div>
         </div>
 
-        {/* Leaderboard Teaser */}
         <div onClick={() => onNavigate('leaderboard')} className="glass-card" style={{ padding: '20px', marginBottom: '30px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'linear-gradient(135deg, #74b9ff 0%, #0984e3 100%)', color: 'white', border: 'none' }}>
           <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
             <FaTrophy size={24} color="#ffeaa7" />
@@ -128,7 +179,6 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
           </span>
         </div>
 
-        {/* Courses & Achievements Grid */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '25px', width: '100%' }}>
           <div className="responsive-flex-item" style={{ flex: '2 1 300px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' }}>
@@ -152,8 +202,6 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
         </div>
       </div>
 
-      {/* FIX 3: MOBILE SIDEBAR OVERLAY */}
-      {/* The Dark Background */}
       <div 
         onClick={() => setIsMenuOpen(false)} 
         style={{ 
@@ -166,13 +214,12 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
         }} 
       />
 
-      {/* The Actual Sidebar Panel */}
       <div 
         className="sidebar-glass sidebar-mobile" 
         style={{ 
             position: 'fixed', top: 0, 
-            right: isMenuOpen ? '0' : '-100%', // Moves completely off-screen
-            width: '300px', // Default width for desktop
+            right: isMenuOpen ? '0' : '-100%', 
+            width: '300px', 
             height: '100%', zIndex: 9999, 
             transition: 'right 0.3s cubic-bezier(0.4, 0, 0.2, 1)', 
             display: 'flex', flexDirection: 'column' 
