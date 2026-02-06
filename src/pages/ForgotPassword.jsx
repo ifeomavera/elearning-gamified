@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import toast from 'react-hot-toast'; // <--- Import the Toast
+import toast from 'react-hot-toast';
 import { FaEnvelope, FaArrowLeft } from 'react-icons/fa';
 
-// Make sure to accept onNavigate if you use it to go back to Login
 const ForgotPassword = ({ onNavigate }) => {
   const [email, setEmail] = useState('');
 
@@ -14,24 +13,26 @@ const ForgotPassword = ({ onNavigate }) => {
     const toastId = toast.loading('Sending reset link...');
 
     try {
-      // NOTE: Ensure this URL matches your backend (Localhost or Render)
-      const res = await axios.post('http://localhost:5000/api/auth/forgot-password', { 
+      // ✅ FIX: Use the Environment Variable so it finds the Real Server
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      
+      await axios.post(`${apiUrl}/api/auth/forgot-password`, { 
         email 
       });
 
-      // 2. Success Notification (Replaces the ugly browser alert)
+      // 2. Success Notification
       toast.success(`Link sent! Check ${email}`, { id: toastId });
       
     } catch (err) {
       // 3. Error Notification
-      const errorMessage = err.response?.data?.message || "Something went wrong";
+      console.error("Forgot Password Error:", err);
+      const errorMessage = err.response?.data?.message || "Something went wrong. Check your connection.";
       toast.error(errorMessage, { id: toastId });
     }
   };
 
   return (
     <div style={styles.container}>
-      {/* Background Shapes for consistency */}
       <div className="bg-shape1" style={{ opacity: 0.15 }}></div>
       <div className="bg-shape2" style={{ opacity: 0.15 }}></div>
 
@@ -70,7 +71,6 @@ const ForgotPassword = ({ onNavigate }) => {
   );
 };
 
-// Reusing your consistent Glass Styles
 const styles = {
   container: { width: '100vw', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-primary)', position: 'relative', overflow: 'hidden', padding: '20px', fontFamily: 'var(--font-body)' },
   card: { width: '100%', maxWidth: '450px', padding: '40px', position: 'relative', zIndex: 10, borderRadius: '20px', textAlign: 'center' },
