@@ -3,6 +3,7 @@ import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
+import ResetPassword from './pages/ResetPassword'; // <--- 1. IMPORT THIS
 import Leaderboard from './pages/Leaderboard';
 import Profile from './pages/Profile';
 import AdminDashboard from './pages/AdminDashboard';
@@ -26,10 +27,20 @@ function App() {
     return saved;
   });
 
+  // --- 2. UPDATED ROUTING LOGIC ---
   const [currentView, setCurrentView] = useState(() => {
+    // PRIORITY 1: Check if this is a Reset Password Link from Email
+    // This allows the link to work even if you are logged in or have saved data
+    if (window.location.pathname.startsWith('/reset-password')) {
+       return 'reset-password';
+    }
+
+    // PRIORITY 2: Check Local Storage (The "Remember Me" feature)
     const saved = localStorage.getItem('currentView');
     if (saved === 'lesson') return 'dashboard';
     if (localStorage.getItem('currentUser') && !saved) return 'dashboard';
+    
+    // PRIORITY 3: Default to Login
     return saved || 'login';
   });
 
@@ -57,8 +68,6 @@ function App() {
     setUser(username);
     const userRole = isAdmin ? 'admin' : 'student';
     setRole(userRole);
-    
-    // Default avatar if none exists
     const currentAvatar = localStorage.getItem('userAvatar') || "👨‍💻";
     setAvatar(currentAvatar);
     
@@ -90,24 +99,17 @@ function App() {
     handleNavigate('lesson');
   };
 
-  // --- GAME LOOP (FIXED URL) ---
   const handleLessonComplete = async (earnedXP) => {
     if (!activeLesson) return;
-
     const toastId = toast.loading("Saving progress...");
-
     try {
-      // ✅ FIX: Use the Environment Variable (Localhost or Render)
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-
       await axios.put(`${apiUrl}/api/users/${user}/progress`, {
         xpEarned: earnedXP,
         courseId: activeLesson.id
       });
-
       toast.success(`Lesson Completed! +${earnedXP} XP`, { id: toastId });
       handleNavigate('dashboard');
-
     } catch (err) {
       console.error(err);
       toast.error("Failed to save progress.", { id: toastId });
@@ -116,6 +118,11 @@ function App() {
 
   // --- RENDER PAGE ---
   const renderPage = () => {
+    // 3. SPECIAL CASE: Always show Reset Password if the URL matches, regardless of login status
+    if (currentView === 'reset-password') {
+        return <ResetPassword onNavigate={handleNavigate} />;
+    }
+
     if (user) {
       if (role === 'admin') {
         return (
@@ -143,26 +150,13 @@ function App() {
               onStartLesson={handleStartLesson}
             />
           );
-        case 'leaderboard':
-          return <Leaderboard username={user} avatar={avatar} onNavigate={handleNavigate} />;
-        case 'profile':
-          return <Profile onNavigate={handleNavigate} onUpdateProfile={handleUpdateProfile} showToast={showToast} />;
-        case 'lesson':
-          return (
-            <LessonView 
-              lesson={activeLesson} 
-              onComplete={handleLessonComplete}
-              onExit={() => handleNavigate('dashboard')} 
-            />
-          );
-        case 'forum':
-          return <Forum username={user} avatar={avatar} onNavigate={handleNavigate} />;
-        case 'stats': 
-          return <Stats onNavigate={handleNavigate} />;
-        case 'credits':
-           return <Credits onNavigate={handleNavigate} />;
-        default:
-          return <NotFound onNavigate={handleNavigate} />;
+        case 'leaderboard': return <Leaderboard username={user} avatar={avatar} onNavigate={handleNavigate} />;
+        case 'profile': return <Profile onNavigate={handleNavigate} onUpdateProfile={handleUpdateProfile} showToast={showToast} />;
+        case 'lesson': return <LessonView lesson={activeLesson} onComplete={handleLessonComplete} onExit={() => handleNavigate('dashboard')} />;
+        case 'forum': return <Forum username={user} avatar={avatar} onNavigate={handleNavigate} />;
+        case 'stats': return <Stats onNavigate={handleNavigate} />;
+        case 'credits': return <Credits onNavigate={handleNavigate} />;
+        default: return <NotFound onNavigate={handleNavigate} />;
       }
     }
 
@@ -170,6 +164,10 @@ function App() {
       case 'signup':
       case 'register': return <Register onSignUp={(name) => handleLogin(name, false)} onNavigate={handleNavigate} />;
       case 'forgot-password': return <ForgotPassword onNavigate={handleNavigate} />;
+      
+      // 4. ADDED CASE HERE JUST IN CASE
+      case 'reset-password': return <ResetPassword onNavigate={handleNavigate} />;
+      
       case 'login': default: return <Login onLogin={handleLogin} onNavigate={handleNavigate} />;
     }
   };
