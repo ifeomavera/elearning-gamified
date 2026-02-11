@@ -13,9 +13,11 @@ const Login = ({ onLogin, onNavigate }) => {
     e.preventDefault();
     setError('');
 
+    // ✅ DEBUG: Check if Vercel is actually finding your variable
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
+    console.log("🔌 Attempting login to:", `${apiUrl}/api/auth/login`);
+
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
-      
       const res = await axios.post(`${apiUrl}/api/auth/login`, {
         identifier: username,
         password
@@ -37,12 +39,16 @@ const Login = ({ onLogin, onNavigate }) => {
       }
 
       // Success! Log them in
-      // If we are in "Admin Login" mode, we force the app to treat us as an Admin
       onLogin(res.data.username, isAdminLogin);
 
     } catch (err) {
-      console.error("Login Error:", err);
-      setError(err.response?.data?.message || "Invalid credentials. Please try again.");
+      console.error("Login Failed:", err);
+      // Give a more specific error message if the connection failed entirely
+      if (err.message === "Network Error") {
+         setError("Could not connect to server. Please check your internet or try again later.");
+      } else {
+         setError(err.response?.data?.message || "Invalid credentials. Please try again.");
+      }
     }
   };
 
