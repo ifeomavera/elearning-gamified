@@ -13,8 +13,8 @@ const Login = ({ onLogin, onNavigate }) => {
     e.preventDefault();
     setError('');
 
-    // ✅ DEBUG: Check if Vercel is actually finding your variable
-    const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
+    // ⚠️ HARDCODED FIX: Directly use the live Render backend
+    const apiUrl = 'https://elearning-api.onrender.com';
     console.log("🔌 Attempting login to:", `${apiUrl}/api/auth/login`);
 
     try {
