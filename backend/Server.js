@@ -16,7 +16,6 @@ app.use(cors({
     // Allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     
-    // Define allowed domains
     const allowedDomains = [
       'http://localhost:5173',                    // Vite Local
       'http://127.0.0.1:5173',                    // Vite Local IP
@@ -24,7 +23,6 @@ app.use(cors({
     ];
     
     // CHECK: Is it an allowed domain OR a Vercel preview link?
-    // This allows ANY URL ending in .vercel.app (great for testing)
     if (allowedDomains.indexOf(origin) !== -1 || origin.endsWith('.vercel.app')) {
       return callback(null, true);
     } else {
@@ -37,7 +35,7 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Middleware to parse JSON bodies
+// Middleware
 app.use(express.json());
 
 // --- DATABASE CONNECTION ---
