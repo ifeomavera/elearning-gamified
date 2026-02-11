@@ -25,20 +25,16 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
 
   useEffect(() => {
     const fetchUserData = async () => {
-      // Prevent loading flash if data exists
       if (xp === 0) setLoading(true);
       
       try {
-        // ✅ FIX: Use the Environment Variable (Localhost or Render)
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-        
         const res = await axios.get(`${apiUrl}/api/users/${username}`);
         const data = res.data;
 
         setXP(data.xp || 0);
         setLevel(data.level || 1);
 
-        // ✅ SAFETY CHECK: Ensure arrays exist before using .includes()
         const userBadges = data.badges || [];
         const userCourses = data.completedCourses || [];
 
@@ -61,53 +57,25 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
     fetchUserData();
   }, [username]);
 
-  // --- IMPROVED LOADING SCREEN ---
   if (loading && xp === 0) {
     return (
       <div style={{
-        height: '100vh', 
-        width: '100vw', 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        background: 'var(--bg-body)', 
-        position: 'fixed', 
-        top: 0,
-        left: 0,
-        zIndex: 9999 
+        height: '100vh', width: '100vw', display: 'flex', flexDirection: 'column', 
+        alignItems: 'center', justifyContent: 'center', background: 'var(--bg-body)', 
+        position: 'fixed', top: 0, left: 0, zIndex: 9999 
       }}>
-        {/* Embedded CSS for the Animation */}
         <style>{`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-          @keyframes pulse {
-            0% { opacity: 0.6; }
-            50% { opacity: 1; }
-            100% { opacity: 0.6; }
-          }
+          @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+          @keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
         `}</style>
-
-        {/* The Spinner Ring */}
         <div style={{
-          width: '60px',
-          height: '60px',
-          border: '6px solid var(--card-border)', 
-          borderTop: '6px solid var(--accent-color)', 
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite',
-          marginBottom: '20px'
+          width: '60px', height: '60px', border: '6px solid var(--card-border)', 
+          borderTop: '6px solid var(--accent-color)', borderRadius: '50%',
+          animation: 'spin 1s linear infinite', marginBottom: '20px'
         }}></div>
-
-        {/* The Text */}
         <h3 style={{ 
-          color: 'var(--text-primary)', 
-          fontFamily: 'var(--font-head)',
-          fontSize: '18px',
-          letterSpacing: '1px',
-          animation: 'pulse 1.5s ease-in-out infinite'
+          color: 'var(--text-primary)', fontFamily: 'var(--font-head)',
+          fontSize: '18px', letterSpacing: '1px', animation: 'pulse 1.5s ease-in-out infinite'
         }}>
           Syncing Mission Data...
         </h3>
@@ -119,21 +87,14 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
     <div style={{ width: '100%', minHeight: '100vh', padding: '20px', display: 'flex', flexDirection: 'column', position: 'relative', overflowX: 'hidden', background: 'var(--bg-body)' }}>
       
       <style>{`
-        .sidebar-glass {
-          background: rgba(255, 255, 255, 0.98);
-          box-shadow: -5px 0 25px rgba(0,0,0,0.2);
-        }
-        [data-theme='dark'] .sidebar-glass {
-          background: #1e1e2e;
-          border-left: 1px solid rgba(255,255,255,0.1);
-        }
+        .sidebar-glass { background: rgba(255, 255, 255, 0.98); box-shadow: -5px 0 25px rgba(0,0,0,0.2); }
+        [data-theme='dark'] .sidebar-glass { background: #1e1e2e; border-left: 1px solid rgba(255,255,255,0.1); }
         .menu-item {
           display: flex; align-items: center; gap: 15px; width: 100%; padding: 15px 20px; border-radius: 12px;
           border: none; background: transparent; color: var(--text-primary); font-size: 16px; font-weight: 600;
           cursor: pointer; transition: all 0.2s ease;
         }
         .menu-item:hover { background: rgba(108, 92, 231, 0.1); transform: translateX(5px); }
-        
         @media (max-width: 768px) {
           .responsive-flex-item { flex: 1 1 100% !important; }
           .sidebar-mobile { width: 85% !important; max-width: 300px; }
@@ -166,16 +127,48 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
           </div>
         </div>
 
-        <div onClick={() => onNavigate('leaderboard')} className="glass-card" style={{ padding: '20px', marginBottom: '30px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'linear-gradient(135deg, #74b9ff 0%, #0984e3 100%)', color: 'white', border: 'none' }}>
+        {/* --- RE-STYLED LEADERBOARD SECTION FOR MAXIMUM VISIBILITY --- */}
+        <div 
+          onClick={() => onNavigate('leaderboard')} 
+          className="glass-card" 
+          style={{ 
+            padding: '20px', 
+            marginBottom: '30px', 
+            cursor: 'pointer', 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'space-between', 
+            transition: 'transform 0.2s ease, border 0.2s ease',
+            border: '2px solid var(--accent-color)' // Bold border to catch the eye
+          }}
+        >
           <div style={{display: 'flex', alignItems: 'center', gap: '15px'}}>
-            <FaTrophy size={24} color="#ffeaa7" />
+            <div style={{ 
+              background: 'rgba(241, 196, 15, 0.15)', 
+              padding: '12px', 
+              borderRadius: '14px', 
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center' 
+            }}>
+              <FaTrophy size={26} color="#f1c40f" />
+            </div>
             <div>
-                <h3 style={{margin: 0, fontSize: '18px'}}>Leaderboard</h3>
-                <p style={{margin: 0, fontSize: '13px', opacity: 0.9}}>Check your rank among peers</p>
+                <h3 style={{margin: 0, fontSize: '18px', color: 'var(--text-primary)', fontWeight: '800'}}>Leaderboard</h3>
+                <p style={{margin: 0, fontSize: '13px', color: 'var(--text-secondary)', opacity: 1}}>Compare your progress with peers</p>
             </div>
           </div>
-          <span style={{fontWeight: 'bold', fontSize: '14px', background: 'rgba(255,255,255,0.2)', color: 'white', padding: '8px 16px', borderRadius: '20px'}}>
-            View &rarr;
+          
+          <span style={{
+            fontWeight: 'bold', 
+            fontSize: '13px', 
+            background: 'var(--accent-color)', 
+            color: '#fff', 
+            padding: '10px 22px', 
+            borderRadius: '25px',
+            boxShadow: '0 4px 15px rgba(108, 92, 231, 0.4)'
+          }}>
+            View Rankings &rarr;
           </span>
         </div>
 
@@ -202,6 +195,7 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
         </div>
       </div>
 
+      {/* MOBILE MENU OVERLAY */}
       <div 
         onClick={() => setIsMenuOpen(false)} 
         style={{ 
@@ -214,6 +208,7 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
         }} 
       />
 
+      {/* MOBILE SIDEBAR */}
       <div 
         className="sidebar-glass sidebar-mobile" 
         style={{ 
@@ -239,14 +234,11 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
           <button onClick={() => { onNavigate('profile'); setIsMenuOpen(false); }} className="menu-item"><FaUser /> My Profile</button>
           <button onClick={() => { onNavigate('forum'); setIsMenuOpen(false); }} className="menu-item"><FaUsers /> Community</button>
           <button onClick={() => { onNavigate('credits'); setIsMenuOpen(false); }} className="menu-item"><FaInfoCircle /> Credits & Team</button>
-          
           <div style={{ height: '1px', background: 'var(--card-border)', margin: '15px 10px' }}></div>
-          
           <button onClick={toggleTheme} className="menu-item">
             {currentTheme === 'light' ? <FaMoon /> : <FaSun color="#ffeb3b" />}
             {currentTheme === 'light' ? "Dark Mode" : "Light Mode"}
           </button>
-          
           <button onClick={onLogout} className="menu-item" style={{ marginTop: '20px', color: '#d63031' }}>
             <FaSignOutAlt /> Log Out
           </button>
@@ -256,4 +248,4 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
   );
 };
 
-export default Dashboard;
+export default Dashboard;s
