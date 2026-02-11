@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import XPBar from '../components/XPBar';
 import BadgeCard from '../components/BadgeCard';
 import CourseCard from '../components/CourseCard';
+import ActivityFeed from '../components/ActivityFeed'; // ✅ 1. Import Component
 import { FaGraduationCap, FaChartLine, FaTrophy, FaSignOutAlt, FaSun, FaMoon, FaUsers, FaBars, FaTimes, FaInfoCircle, FaUser } from 'react-icons/fa';
 import axios from 'axios';
 
@@ -10,6 +11,7 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
   const [level, setLevel] = useState(1);
   const [loading, setLoading] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [activities, setActivities] = useState([]); // ✅ 2. New State for Feed
 
   const [courses, setCourses] = useState([
       { id: 1, title: "Intro to Software Engineering", module: "Module 1", xp: 50, videoId: "zOjov-2OZ0E", completed: false },
@@ -28,12 +30,22 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
       if (xp === 0) setLoading(true);
       try {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        
+        // Fetch User Stats
         const res = await axios.get(`${apiUrl}/api/users/${username}`);
         const data = res.data;
         setXP(data.xp || 0);
         setLevel(data.level || 1);
         const userBadges = data.badges || [];
         const userCourses = data.completedCourses || [];
+
+        // ✅ 3. Fetch Activity Feed
+        try {
+            const feedRes = await axios.get(`${apiUrl}/api/users/activities`);
+            setActivities(feedRes.data);
+        } catch (feedErr) {
+            console.error("Could not load activity feed", feedErr);
+        }
 
         setBadges(prev => prev.map(b => ({
           ...b,
@@ -77,13 +89,13 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
   return (
     <div style={{ 
       width: '100%', 
-      minHeight: '100dvh', // ✅ FIX: Prevents empty screen on mobile browsers
+      minHeight: '100dvh', 
       padding: '15px', 
       display: 'flex', 
       flexDirection: 'column', 
       position: 'relative', 
       background: 'var(--bg-body)',
-      overflowY: 'auto', // ✅ Allows natural scrolling on mobile
+      overflowY: 'auto', 
       WebkitOverflowScrolling: 'touch' 
     }}>
       
@@ -101,7 +113,7 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
           .responsive-flex { flex-direction: column !important; gap: 20px !important; }
           .responsive-flex-item { flex: 1 1 100% !important; width: 100% !important; }
           .sidebar-mobile { width: 85% !important; }
-          .xp-section { padding: 12px !important; } /* ✅ More compact XP Bar on mobile */
+          .xp-section { padding: 12px !important; }
           .header-text h1 { font-size: 18px !important; }
         }
       `}</style>
@@ -133,7 +145,7 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
           </div>
         </div>
 
-        {/* Leaderboard CTA (High Contrast Fix) */}
+        {/* Leaderboard CTA */}
         <div 
           onClick={() => onNavigate('leaderboard')} 
           className="glass-card" 
@@ -150,7 +162,7 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
           <span style={{fontWeight: 'bold', fontSize: '11px', background: 'var(--accent-color)', color: '#fff', padding: '6px 12px', borderRadius: '15px'}}>View &rarr;</span>
         </div>
 
-        {/* Content Area (Vertical Stack on Mobile) */}
+        {/* Content Area */}
         <div className="responsive-flex" style={{ display: 'flex', gap: '20px' }}>
           {/* Courses Section */}
           <div className="responsive-flex-item" style={{ flex: '2' }}>
@@ -165,15 +177,23 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
             </div>
           </div>
 
-          {/* Achievements Section */}
+          {/* Achievements & Activity Feed Section */}
           <div className="responsive-flex-item" style={{ flex: '1' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                <FaTrophy color="#e17055" size={18} />
-                <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '16px', fontWeight: '800' }}>Achievements</h3>
+            
+            {/* Badges */}
+            <div style={{ marginBottom: '25px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <FaTrophy color="#e17055" size={18} />
+                    <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '16px', fontWeight: '800' }}>Achievements</h3>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {badges.map(badge => <BadgeCard key={badge.id} {...badge} />)}
+                </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {badges.map(badge => <BadgeCard key={badge.id} {...badge} />)}
-            </div>
+
+            {/* ✅ 4. Activity Feed (Stacked Below Badges) */}
+            <ActivityFeed activities={activities} />
+
           </div>
         </div>
       </div>
