@@ -13,6 +13,7 @@ import LessonView from './pages/LessonView';
 import Forum from './pages/Forum';
 import Stats from './pages/Stats';
 import Credits from './pages/Credits';
+import HallOfFame from './pages/HallOfFame'; // ✅ 1. Import New Page
 import { Toaster, toast } from 'react-hot-toast';
 import axios from 'axios';
 
@@ -39,6 +40,7 @@ function App() {
     else if (view === 'login') navigate('/login');
     else if (view === 'register') navigate('/register');
     else if (view === 'forgot-password') navigate('/forgot-password');
+    else if (view === 'hall-of-fame') navigate('/hall-of-fame'); // ✅ Handle new route
     else navigate(`/${view}`);
   };
 
@@ -150,6 +152,10 @@ function App() {
         } />
 
         <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard username={user} avatar={avatar} onNavigate={handleNavigate} /></ProtectedRoute>} />
+        
+        {/* ✅ 2. Add Hall of Fame Route */}
+        <Route path="/hall-of-fame" element={<ProtectedRoute><HallOfFame onNavigate={handleNavigate} /></ProtectedRoute>} />
+        
         <Route path="/profile" element={<ProtectedRoute><Profile onNavigate={handleNavigate} onUpdateProfile={handleUpdateProfile} showToast={showToast} /></ProtectedRoute>} />
         <Route path="/lesson" element={<ProtectedRoute><LessonView lesson={activeLesson} onComplete={handleLessonComplete} onExit={() => navigate('/dashboard')} /></ProtectedRoute>} />
         <Route path="/forum" element={<ProtectedRoute><Forum username={user} avatar={avatar} onNavigate={handleNavigate} /></ProtectedRoute>} />

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import XPBar from '../components/XPBar';
 import BadgeCard from '../components/BadgeCard';
 import CourseCard from '../components/CourseCard';
-import ActivityFeed from '../components/ActivityFeed'; // ✅ 1. Import Component
+import ActivityFeed from '../components/ActivityFeed'; 
 import { FaGraduationCap, FaChartLine, FaTrophy, FaSignOutAlt, FaSun, FaMoon, FaUsers, FaBars, FaTimes, FaInfoCircle, FaUser } from 'react-icons/fa';
 import axios from 'axios';
 
@@ -11,7 +11,7 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
   const [level, setLevel] = useState(1);
   const [loading, setLoading] = useState(true);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [activities, setActivities] = useState([]); // ✅ 2. New State for Feed
+  const [activities, setActivities] = useState([]); 
 
   const [courses, setCourses] = useState([
       { id: 1, title: "Intro to Software Engineering", module: "Module 1", xp: 50, videoId: "zOjov-2OZ0E", completed: false },
@@ -39,7 +39,7 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
         const userBadges = data.badges || [];
         const userCourses = data.completedCourses || [];
 
-        // ✅ 3. Fetch Activity Feed
+        // Fetch Activity Feed
         try {
             const feedRes = await axios.get(`${apiUrl}/api/users/activities`);
             setActivities(feedRes.data);
@@ -145,9 +145,9 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
           </div>
         </div>
 
-        {/* Leaderboard CTA */}
+        {/* ✅ UPDATED Leaderboard CTA -> Hall of Fame */}
         <div 
-          onClick={() => onNavigate('leaderboard')} 
+          onClick={() => onNavigate('hall-of-fame')} 
           className="glass-card" 
           style={{ 
             padding: '12px 15px', marginBottom: '20px', cursor: 'pointer', 
@@ -157,7 +157,7 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
         >
           <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
             <FaTrophy size={20} color="#f1c40f" />
-            <h3 style={{margin: 0, fontSize: '15px', color: 'var(--text-primary)', fontWeight: '700'}}>Leaderboard</h3>
+            <h3 style={{margin: 0, fontSize: '15px', color: 'var(--text-primary)', fontWeight: '700'}}>Hall of Fame</h3>
           </div>
           <span style={{fontWeight: 'bold', fontSize: '11px', background: 'var(--accent-color)', color: '#fff', padding: '6px 12px', borderRadius: '15px'}}>View &rarr;</span>
         </div>
@@ -191,7 +191,7 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
                 </div>
             </div>
 
-            {/* ✅ 4. Activity Feed (Stacked Below Badges) */}
+            {/* Activity Feed */}
             <ActivityFeed activities={activities} />
 
           </div>
