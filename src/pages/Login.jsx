@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
-import { FaUserGraduate, FaChalkboardTeacher, FaLock, FaUser, FaEye, FaEyeSlash } from 'react-icons/fa'; // ✅ Added Eye Icons
+import { FaUserGraduate, FaChalkboardTeacher, FaLock, FaUser, FaEye, FaEyeSlash } from 'react-icons/fa';
 import axios from 'axios';
 
 const Login = ({ onLogin, onNavigate }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false); // ✅ Added Toggle State
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [isAdminLogin, setIsAdminLogin] = useState(false);
 
@@ -14,22 +14,31 @@ const Login = ({ onLogin, onNavigate }) => {
     setError('');
 
     try {
-      // ✅ FIX: Use the Environment Variable (or fallback to localhost)
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
       
       const res = await axios.post(`${apiUrl}/api/auth/login`, {
-        username,
+        identifier: username,
         password
       });
 
-      // Role Security Check
-      if (isAdminLogin && res.data.role !== 'admin') {
-        setError("This account is not an Admin.");
-        return;
+      // --- SECURITY CHECK ---
+      
+      // ✅ DEV BYPASS: Add your usernames here to access ANY side
+      const devUsers = ['KAY FLOCK', 'Paul', 'Admin'];
+      const isDev = devUsers.includes(res.data.username);
+
+      // If trying to access Admin Panel...
+      if (isAdminLogin) {
+        // Block if NOT admin AND NOT a dev
+        if (res.data.role !== 'admin' && !isDev) {
+          setError("This account is not an Admin.");
+          return;
+        }
       }
 
       // Success! Log them in
-      onLogin(res.data.username, res.data.role === 'admin');
+      // If we are in "Admin Login" mode, we force the app to treat us as an Admin
+      onLogin(res.data.username, isAdminLogin);
 
     } catch (err) {
       console.error("Login Error:", err);
@@ -39,46 +48,29 @@ const Login = ({ onLogin, onNavigate }) => {
 
   return (
     <div style={styles.container}>
-      <div className="bg-shape1" style={{ opacity: 0.15 }}></div>
-      <div className="bg-shape2" style={{ opacity: 0.15 }}></div>
+      <div style={styles.gradientBg}></div>
 
-      <div className="glass-card" style={styles.card}>
-        
-        {/* ICON HEADER */}
-        <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-          <div style={styles.iconWrapper}>
+      <div style={styles.card}>
+        <div style={styles.header}>
+          <div style={{...styles.iconWrapper, background: isAdminLogin ? '#fff5f5' : '#f0f9ff'}}>
             {isAdminLogin ? (
-              <FaChalkboardTeacher size={40} color="#ff7675" />
+              <FaChalkboardTeacher size={32} color="#ff6b6b" />
             ) : (
-              <FaUserGraduate size={40} color="var(--accent-color)" />
+              <FaUserGraduate size={32} color="#4834d4" />
             )}
           </div>
+          <h2 style={styles.title}>{isAdminLogin ? "Instructor Portal" : "Student Portal"}</h2>
+          <p style={styles.subtitle}>{isAdminLogin ? "Manage Curriculum" : "Gamify Your Learning"}</p>
         </div>
 
-        {/* TITLE TEXT */}
-        <h2 style={styles.title}>
-          {isAdminLogin ? "Instructor Portal" : "Student Portal"}
-        </h2>
-        <p style={styles.subtitle}>
-          {isAdminLogin ? "Manage your curriculum" : "Gamify your learning journey"}
-        </p>
-        
-        {/* ERROR MESSAGE */}
-        {error && (
-          <div style={styles.errorBox}>
-            {error}
-          </div>
-        )}
+        {error && <div style={styles.errorBox}>{error}</div>}
 
-        {/* FORM */}
-        <form onSubmit={handleSubmit} style={{ marginTop: '10px' }}>
-          
-          {/* USERNAME */}
+        <form onSubmit={handleSubmit} style={styles.form}>
           <div style={styles.inputGroup}>
             <FaUser style={styles.inputIcon} />
             <input 
               type="text" 
-              placeholder={isAdminLogin ? "Admin Username" : "Student Username"} 
+              placeholder={isAdminLogin ? "Admin Email or Username" : "Email or Username"} 
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               style={styles.input}
@@ -86,65 +78,57 @@ const Login = ({ onLogin, onNavigate }) => {
             />
           </div>
 
-          {/* PASSWORD (Now with Eye Icon) */}
           <div style={styles.inputGroup}>
             <FaLock style={styles.inputIcon} />
             <input 
-              type={showPassword ? "text" : "password"} // ✅ Toggles type
+              type={showPassword ? "text" : "password"}
               placeholder="Password" 
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               style={styles.input}
               required
             />
-            {/* ✅ The Eye Button */}
-            <span 
-              onClick={() => setShowPassword(!showPassword)}
-              style={styles.eyeIcon}
-            >
+            <span onClick={() => setShowPassword(!showPassword)} style={styles.eyeIcon}>
               {showPassword ? <FaEyeSlash /> : <FaEye />}
             </span>
           </div>
 
-          <div style={{ textAlign: 'right', marginBottom: '25px' }}>
+          <div style={styles.forgotRow}>
             <span onClick={() => onNavigate('forgot-password')} style={styles.forgotLink}>
               Forgot Password?
             </span>
           </div>
 
-          {/* BUTTON */}
-          <button type="submit" className="btn-primary" style={{ 
+          <button type="submit" style={{
             ...styles.button,
-            background: isAdminLogin ? 'linear-gradient(135deg, #d63031 0%, #ff7675 100%)' : 'var(--accent-color)'
+            background: isAdminLogin ? 'linear-gradient(to right, #ff6b6b, #ee5253)' : 'linear-gradient(to right, #6c5ce7, #a29bfe)'
           }}>
-            {isAdminLogin ? "Login to Admin Panel" : "Start Learning"}
+            {isAdminLogin ? "Login as Admin" : "Start Learning"}
           </button>
         </form>
-        
-        {/* FOOTER SWITCH */}
+
         <div style={styles.footer}>
           <p style={styles.footerText}>
             {isAdminLogin ? "Not an instructor?" : "Are you an instructor?"}
             <span 
               onClick={() => setIsAdminLogin(!isAdminLogin)} 
-              style={{...styles.link, color: isAdminLogin ? 'var(--accent-color)' : '#ff7675'}}
+              style={{...styles.link, color: isAdminLogin ? '#4834d4' : '#ff6b6b'}}
             >
               {isAdminLogin ? " Student Login" : " Admin Login"}
             </span>
           </p>
+          {!isAdminLogin && (
+            <p style={{...styles.footerText, marginTop: '10px'}}>
+              New here? <span onClick={() => onNavigate('register')} style={styles.link}>Create Account</span>
+            </p>
+          )}
         </div>
-
-        {!isAdminLogin && (
-          <p style={{ marginTop: '15px', ...styles.footerText, textAlign: 'center' }}>
-            New here? <span onClick={() => onNavigate('register')} style={styles.link}>Create Account</span>
-          </p>
-        )}
       </div>
     </div>
   );
 };
 
-// --- STYLES ---
+// --- MODERN STYLES ---
 const styles = {
   container: {
     width: '100vw',
@@ -152,102 +136,79 @@ const styles = {
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    background: 'var(--bg-primary)',
+    fontFamily: "'Inter', 'Segoe UI', sans-serif",
     position: 'relative',
-    overflow: 'hidden',
-    padding: '20px',
-    fontFamily: 'var(--font-body, sans-serif)',
-    transition: 'background 0.3s ease'
+    overflow: 'hidden'
+  },
+  gradientBg: {
+    position: 'absolute',
+    top: 0, left: 0, right: 0, bottom: 0,
+    background: 'linear-gradient(135deg, #a29bfe 0%, #74b9ff 100%)',
+    zIndex: -1
   },
   card: {
     width: '100%',
-    maxWidth: '400px',
+    maxWidth: '420px',
+    background: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: '24px',
     padding: '40px',
-    position: 'relative',
-    zIndex: 10,
-    borderRadius: '20px'
+    boxShadow: '0 20px 40px rgba(0, 0, 0, 0.1)',
+    backdropFilter: 'blur(10px)',
+    margin: '20px'
   },
+  header: { textAlign: 'center', marginBottom: '30px' },
   iconWrapper: {
-    width: '80px', height: '80px', margin: '0 auto', 
-    borderRadius: '50%', 
-    background: 'var(--bg-secondary)',
+    width: '64px', height: '64px',
+    borderRadius: '50%',
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+    margin: '0 auto 15px auto',
+    boxShadow: '0 4px 10px rgba(0,0,0,0.05)'
   },
-  title: { 
-    color: 'var(--text-primary)', 
-    marginBottom: '5px', 
-    textAlign: 'center', 
-    fontSize: '28px', 
-    fontWeight: 'bold',
-    fontFamily: 'var(--font-head, sans-serif)'
-  },
-  subtitle: { 
-    color: 'var(--text-secondary)', 
-    textAlign: 'center', 
-    marginBottom: '10px', 
-    fontSize: '15px' 
-  },
-  errorBox: {
-    color: '#ff7675', 
-    textAlign: 'center', 
-    fontSize: '14px', 
-    background: 'rgba(255, 118, 117, 0.1)', 
-    padding: '10px', 
-    borderRadius: '8px',
-    marginBottom: '15px',
-    border: '1px solid rgba(255, 118, 117, 0.2)'
-  },
-  inputGroup: {
-    position: 'relative',
-    marginBottom: '20px'
-  },
+  title: { fontSize: '24px', fontWeight: '800', color: '#2d3436', margin: '0' },
+  subtitle: { fontSize: '14px', color: '#636e72', marginTop: '5px' },
+  form: { display: 'flex', flexDirection: 'column', gap: '15px' },
+  inputGroup: { position: 'relative' },
   inputIcon: {
-    position: 'absolute',
-    left: '15px',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    color: 'var(--text-secondary)',
-    zIndex: 1
-  },
-  eyeIcon: { // ✅ New Style for Eye Icon
-    position: 'absolute',
-    right: '15px',
-    top: '50%',
-    transform: 'translateY(-50%)',
-    cursor: 'pointer',
-    color: 'var(--text-secondary)',
-    zIndex: 2
+    position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)',
+    color: '#b2bec3', fontSize: '16px', zIndex: 1
   },
   input: {
     width: '100%',
-    padding: '15px 45px 15px 45px', // Added padding on right for eye icon
-    borderRadius: '10px',
-    border: '1px solid var(--card-border)',
-    background: 'var(--input-bg)',
-    color: 'var(--text-primary)',
-    fontSize: '16px',
+    padding: '14px 45px',
+    borderRadius: '12px',
+    border: '2px solid #f1f2f6',
+    background: '#f8f9fa',
+    fontSize: '15px',
+    color: '#2d3436',
     outline: 'none',
-    transition: '0.3s',
-    fontFamily: 'var(--font-body, sans-serif)'
+    transition: 'all 0.2s ease',
   },
-  forgotLink: { color: 'var(--text-secondary)', fontSize: '13px', cursor: 'pointer' },
+  eyeIcon: {
+    position: 'absolute', right: '15px', top: '50%', transform: 'translateY(-50%)',
+    cursor: 'pointer', color: '#b2bec3', zIndex: 2
+  },
+  forgotRow: { textAlign: 'right', marginTop: '-5px' },
+  forgotLink: { fontSize: '13px', color: '#636e72', cursor: 'pointer', fontWeight: '500' },
   button: {
-    width: '100%', 
-    padding: '15px', 
-    fontSize: '16px',
-    color: '#ffffff',
+    width: '100%',
+    padding: '16px',
+    borderRadius: '12px',
     border: 'none',
-    borderRadius: '10px',
+    color: 'white',
+    fontSize: '16px',
+    fontWeight: '700',
     cursor: 'pointer',
-    fontWeight: 'bold',
-    fontFamily: 'var(--font-body, sans-serif)',
-    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-    boxShadow: '0 4px 6px rgba(0,0,0,0.1)'
+    marginTop: '10px',
+    boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
+    transition: 'transform 0.1s ease'
   },
-  footer: { marginTop: '30px', paddingTop: '20px', borderTop: '1px solid var(--card-border)', textAlign: 'center' },
-  footerText: { fontSize: '14px', color: 'var(--text-secondary)' },
-  link: { marginLeft: '5px', cursor: 'pointer', fontWeight: 'bold', color: 'var(--accent-color)' }
+  errorBox: {
+    background: '#ffeaa7', color: '#d63031', padding: '12px', borderRadius: '8px',
+    fontSize: '14px', textAlign: 'center', marginBottom: '20px', fontWeight: '500'
+  },
+  footer: { marginTop: '30px', textAlign: 'center', borderTop: '1px solid #f1f2f6', paddingTop: '20px' },
+  footerText: { fontSize: '14px', color: '#636e72' },
+  link: { color: '#4834d4', fontWeight: '700', cursor: 'pointer', marginLeft: '5px' }
 };
 
 export default Login;

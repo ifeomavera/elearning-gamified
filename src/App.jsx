@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'; // ✅ Import Router hooks
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword'; // <--- 1. IMPORT THIS
+import ResetPassword from './pages/ResetPassword';
 import Leaderboard from './pages/Leaderboard';
 import Profile from './pages/Profile';
 import AdminDashboard from './pages/AdminDashboard';
@@ -16,6 +17,9 @@ import { Toaster, toast } from 'react-hot-toast';
 import axios from 'axios';
 
 function App() {
+  const navigate = useNavigate(); // ✅ Use Hook for navigation
+  const location = useLocation();
+
   // --- STATE ---
   const [user, setUser] = useState(() => localStorage.getItem('currentUser'));
   const [role, setRole] = useState(() => localStorage.getItem('currentRole') || 'student');
@@ -27,24 +31,16 @@ function App() {
     return saved;
   });
 
-  // --- 2. UPDATED ROUTING LOGIC ---
-  const [currentView, setCurrentView] = useState(() => {
-    // PRIORITY 1: Check if this is a Reset Password Link from Email
-    // This allows the link to work even if you are logged in or have saved data
-    if (window.location.pathname.startsWith('/reset-password')) {
-       return 'reset-password';
-    }
-
-    // PRIORITY 2: Check Local Storage (The "Remember Me" feature)
-    const saved = localStorage.getItem('currentView');
-    if (saved === 'lesson') return 'dashboard';
-    if (localStorage.getItem('currentUser') && !saved) return 'dashboard';
-    
-    // PRIORITY 3: Default to Login
-    return saved || 'login';
-  });
-
   const [activeLesson, setActiveLesson] = useState(null);
+
+  // --- HELPER: Keep old components working by mapping string views to paths
+  const handleNavigate = (view) => {
+    if (view === 'dashboard') navigate('/dashboard');
+    else if (view === 'login') navigate('/login');
+    else if (view === 'register') navigate('/register');
+    else if (view === 'forgot-password') navigate('/forgot-password');
+    else navigate(`/${view}`);
+  };
 
   const showToast = (message, type = 'success') => {
     if (type === 'error') toast.error(message);
@@ -59,11 +55,6 @@ function App() {
 
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
-  const handleNavigate = (view) => {
-    setCurrentView(view);
-    localStorage.setItem('currentView', view);
-  };
-
   const handleLogin = (username, isAdmin) => {
     setUser(username);
     const userRole = isAdmin ? 'admin' : 'student';
@@ -76,7 +67,7 @@ function App() {
     localStorage.setItem('userAvatar', currentAvatar);
     
     toast.success(`Welcome back, ${username}!`);
-    handleNavigate('dashboard'); 
+    navigate('/dashboard'); 
   };
 
   const handleUpdateProfile = (newName, newAvatar) => {
@@ -87,95 +78,87 @@ function App() {
   const handleLogout = () => {
     setUser(null);
     setRole('student');
-    localStorage.removeItem('currentUser');
-    localStorage.removeItem('currentRole');
-    localStorage.removeItem('currentView'); 
-    setCurrentView('login');
+    localStorage.clear();
+    navigate('/login');
     toast.success("Logged out successfully");
   };
 
   const handleStartLesson = (lesson) => {
     setActiveLesson(lesson);
-    handleNavigate('lesson');
+    navigate('/lesson');
   };
 
   const handleLessonComplete = async (earnedXP) => {
     if (!activeLesson) return;
     const toastId = toast.loading("Saving progress...");
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
       await axios.put(`${apiUrl}/api/users/${user}/progress`, {
         xpEarned: earnedXP,
         courseId: activeLesson.id
       });
       toast.success(`Lesson Completed! +${earnedXP} XP`, { id: toastId });
-      handleNavigate('dashboard');
+      navigate('/dashboard');
     } catch (err) {
       console.error(err);
       toast.error("Failed to save progress.", { id: toastId });
     }
   };
 
-  // --- RENDER PAGE ---
-  const renderPage = () => {
-    // 3. SPECIAL CASE: Always show Reset Password if the URL matches, regardless of login status
-    if (currentView === 'reset-password') {
-        return <ResetPassword onNavigate={handleNavigate} />;
-    }
-
-    if (user) {
-      if (role === 'admin') {
-        return (
-          <AdminDashboard 
-            onLogout={handleLogout} 
-            showToast={showToast} 
-            toggleTheme={toggleTheme} 
-            currentTheme={theme}
-          />
-        );
-      }
-      
-      switch (currentView) {
-        case 'dashboard':
-        case 'login': 
-          return (
-            <Dashboard 
-              username={user} 
-              avatar={avatar} 
-              onLogout={handleLogout} 
-              onNavigate={handleNavigate} 
-              showToast={showToast}
-              toggleTheme={toggleTheme}
-              currentTheme={theme}
-              onStartLesson={handleStartLesson}
-            />
-          );
-        case 'leaderboard': return <Leaderboard username={user} avatar={avatar} onNavigate={handleNavigate} />;
-        case 'profile': return <Profile onNavigate={handleNavigate} onUpdateProfile={handleUpdateProfile} showToast={showToast} />;
-        case 'lesson': return <LessonView lesson={activeLesson} onComplete={handleLessonComplete} onExit={() => handleNavigate('dashboard')} />;
-        case 'forum': return <Forum username={user} avatar={avatar} onNavigate={handleNavigate} />;
-        case 'stats': return <Stats onNavigate={handleNavigate} />;
-        case 'credits': return <Credits onNavigate={handleNavigate} />;
-        default: return <NotFound onNavigate={handleNavigate} />;
-      }
-    }
-
-    switch (currentView) {
-      case 'signup':
-      case 'register': return <Register onSignUp={(name) => handleLogin(name, false)} onNavigate={handleNavigate} />;
-      case 'forgot-password': return <ForgotPassword onNavigate={handleNavigate} />;
-      
-      // 4. ADDED CASE HERE JUST IN CASE
-      case 'reset-password': return <ResetPassword onNavigate={handleNavigate} />;
-      
-      case 'login': default: return <Login onLogin={handleLogin} onNavigate={handleNavigate} />;
-    }
+  // --- ROUTE PROTECTION ---
+  const ProtectedRoute = ({ children }) => {
+    if (!user) return <Navigate to="/login" replace />;
+    return children;
   };
 
   return (
     <>
       <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
-      {renderPage()}
+      
+      <Routes>
+        {/* PUBLIC ROUTES */}
+        <Route path="/login" element={<Login onLogin={handleLogin} onNavigate={handleNavigate} />} />
+        <Route path="/register" element={<Register onSignUp={(name) => handleLogin(name, false)} onNavigate={handleNavigate} />} />
+        <Route path="/forgot-password" element={<ForgotPassword onNavigate={handleNavigate} />} />
+        
+        {/* ✅ THE FIX: This Route captures the token correctly */}
+        <Route path="/reset-password/:resetToken" element={<ResetPassword />} />
+
+        {/* PROTECTED ROUTES */}
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
+            {role === 'admin' ? (
+              <AdminDashboard 
+                onLogout={handleLogout} 
+                showToast={showToast} 
+                toggleTheme={toggleTheme} 
+                currentTheme={theme}
+              />
+            ) : (
+              <Dashboard 
+                username={user} 
+                avatar={avatar} 
+                onLogout={handleLogout} 
+                onNavigate={handleNavigate} 
+                showToast={showToast}
+                toggleTheme={toggleTheme}
+                currentTheme={theme}
+                onStartLesson={handleStartLesson}
+              />
+            )}
+          </ProtectedRoute>
+        } />
+
+        <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard username={user} avatar={avatar} onNavigate={handleNavigate} /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute><Profile onNavigate={handleNavigate} onUpdateProfile={handleUpdateProfile} showToast={showToast} /></ProtectedRoute>} />
+        <Route path="/lesson" element={<ProtectedRoute><LessonView lesson={activeLesson} onComplete={handleLessonComplete} onExit={() => navigate('/dashboard')} /></ProtectedRoute>} />
+        <Route path="/forum" element={<ProtectedRoute><Forum username={user} avatar={avatar} onNavigate={handleNavigate} /></ProtectedRoute>} />
+        <Route path="/stats" element={<ProtectedRoute><Stats onNavigate={handleNavigate} /></ProtectedRoute>} />
+        <Route path="/credits" element={<ProtectedRoute><Credits onNavigate={handleNavigate} /></ProtectedRoute>} />
+        
+        {/* FALLBACK ROUTE */}
+        <Route path="*" element={<Navigate to={user ? "/dashboard" : "/login"} replace />} />
+      </Routes>
     </>
   );
 }
