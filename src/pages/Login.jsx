@@ -1,21 +1,23 @@
 import React, { useState } from 'react';
-import { FaUserGraduate, FaChalkboardTeacher, FaLock, FaUser } from 'react-icons/fa';
-import axios from 'axios'; // <--- 1. Import Axios
+import { FaUserGraduate, FaChalkboardTeacher, FaLock, FaUser, FaEye, FaEyeSlash } from 'react-icons/fa'; // ✅ Added Eye Icons
+import axios from 'axios';
 
 const Login = ({ onLogin, onNavigate }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState(''); // <--- 2. Error State
+  const [showPassword, setShowPassword] = useState(false); // ✅ Added Toggle State
+  const [error, setError] = useState('');
   const [isAdminLogin, setIsAdminLogin] = useState(false);
 
-  // --- 3. REAL BACKEND CONNECTION ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
 
     try {
-      // Call the server
-      const res = await axios.post('https://elearning-api-2tsf.onrender.com/api/auth/login', {
+      // ✅ FIX: Use the Environment Variable (or fallback to localhost)
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      
+      const res = await axios.post(`${apiUrl}/api/auth/login`, {
         username,
         password
       });
@@ -27,18 +29,16 @@ const Login = ({ onLogin, onNavigate }) => {
       }
 
       // Success! Log them in
-      // We pass the role status to App.jsx so it knows where to send them
       onLogin(res.data.username, res.data.role === 'admin');
 
     } catch (err) {
-      // Show error from server (e.g., "Wrong password")
-      setError(err.response?.data?.message || "Invalid credentials");
+      console.error("Login Error:", err);
+      setError(err.response?.data?.message || "Invalid credentials. Please try again.");
     }
   };
 
   return (
     <div style={styles.container}>
-      {/* ANIMATED BACKGROUND CIRCLES */}
       <div className="bg-shape1" style={{ opacity: 0.15 }}></div>
       <div className="bg-shape2" style={{ opacity: 0.15 }}></div>
 
@@ -63,18 +63,9 @@ const Login = ({ onLogin, onNavigate }) => {
           {isAdminLogin ? "Manage your curriculum" : "Gamify your learning journey"}
         </p>
         
-        {/* --- 4. ERROR MESSAGE DISPLAY --- */}
+        {/* ERROR MESSAGE */}
         {error && (
-          <div style={{ 
-            color: '#ff7675', 
-            textAlign: 'center', 
-            fontSize: '14px', 
-            background: 'rgba(255, 118, 117, 0.1)', 
-            padding: '10px', 
-            borderRadius: '8px',
-            marginBottom: '15px',
-            border: '1px solid rgba(255, 118, 117, 0.2)'
-          }}>
+          <div style={styles.errorBox}>
             {error}
           </div>
         )}
@@ -82,7 +73,7 @@ const Login = ({ onLogin, onNavigate }) => {
         {/* FORM */}
         <form onSubmit={handleSubmit} style={{ marginTop: '10px' }}>
           
-          {/* USERNAME INPUT */}
+          {/* USERNAME */}
           <div style={styles.inputGroup}>
             <FaUser style={styles.inputIcon} />
             <input 
@@ -95,17 +86,24 @@ const Login = ({ onLogin, onNavigate }) => {
             />
           </div>
 
-          {/* PASSWORD INPUT */}
+          {/* PASSWORD (Now with Eye Icon) */}
           <div style={styles.inputGroup}>
             <FaLock style={styles.inputIcon} />
             <input 
-              type="password" 
+              type={showPassword ? "text" : "password"} // ✅ Toggles type
               placeholder="Password" 
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               style={styles.input}
               required
             />
+            {/* ✅ The Eye Button */}
+            <span 
+              onClick={() => setShowPassword(!showPassword)}
+              style={styles.eyeIcon}
+            >
+              {showPassword ? <FaEyeSlash /> : <FaEye />}
+            </span>
           </div>
 
           <div style={{ textAlign: 'right', marginBottom: '25px' }}>
@@ -146,7 +144,7 @@ const Login = ({ onLogin, onNavigate }) => {
   );
 };
 
-// --- STYLES (Kept exactly as you had them) ---
+// --- STYLES ---
 const styles = {
   container: {
     width: '100vw',
@@ -190,6 +188,16 @@ const styles = {
     marginBottom: '10px', 
     fontSize: '15px' 
   },
+  errorBox: {
+    color: '#ff7675', 
+    textAlign: 'center', 
+    fontSize: '14px', 
+    background: 'rgba(255, 118, 117, 0.1)', 
+    padding: '10px', 
+    borderRadius: '8px',
+    marginBottom: '15px',
+    border: '1px solid rgba(255, 118, 117, 0.2)'
+  },
   inputGroup: {
     position: 'relative',
     marginBottom: '20px'
@@ -202,9 +210,18 @@ const styles = {
     color: 'var(--text-secondary)',
     zIndex: 1
   },
+  eyeIcon: { // ✅ New Style for Eye Icon
+    position: 'absolute',
+    right: '15px',
+    top: '50%',
+    transform: 'translateY(-50%)',
+    cursor: 'pointer',
+    color: 'var(--text-secondary)',
+    zIndex: 2
+  },
   input: {
     width: '100%',
-    padding: '15px 15px 15px 45px',
+    padding: '15px 45px 15px 45px', // Added padding on right for eye icon
     borderRadius: '10px',
     border: '1px solid var(--card-border)',
     background: 'var(--input-bg)',
