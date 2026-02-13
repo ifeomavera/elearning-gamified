@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom'; // ✅ Import Router hooks
+import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Register from './pages/Register';
@@ -13,12 +13,13 @@ import LessonView from './pages/LessonView';
 import Forum from './pages/Forum';
 import Stats from './pages/Stats';
 import Credits from './pages/Credits';
-import HallOfFame from './pages/HallOfFame'; // ✅ 1. Import New Page
+import HallOfFame from './pages/HallOfFame';
+import CourseCatalog from './pages/CourseCatalog'; // ✅ 1. Import the new Course Catalog
 import { Toaster, toast } from 'react-hot-toast';
 import axios from 'axios';
 
 function App() {
-  const navigate = useNavigate(); // ✅ Use Hook for navigation
+  const navigate = useNavigate();
   const location = useLocation();
 
   // --- STATE ---
@@ -34,13 +35,14 @@ function App() {
 
   const [activeLesson, setActiveLesson] = useState(null);
 
-  // --- HELPER: Keep old components working by mapping string views to paths
+  // --- HELPER: Navigation mapping ---
   const handleNavigate = (view) => {
     if (view === 'dashboard') navigate('/dashboard');
     else if (view === 'login') navigate('/login');
     else if (view === 'register') navigate('/register');
     else if (view === 'forgot-password') navigate('/forgot-password');
-    else if (view === 'hall-of-fame') navigate('/hall-of-fame'); // ✅ Handle new route
+    else if (view === 'hall-of-fame') navigate('/hall-of-fame');
+    else if (view === 'course-catalog') navigate('/course-catalog'); // ✅ 2. Map the new route
     else navigate(`/${view}`);
   };
 
@@ -122,8 +124,6 @@ function App() {
         <Route path="/login" element={<Login onLogin={handleLogin} onNavigate={handleNavigate} />} />
         <Route path="/register" element={<Register onSignUp={(name) => handleLogin(name, false)} onNavigate={handleNavigate} />} />
         <Route path="/forgot-password" element={<ForgotPassword onNavigate={handleNavigate} />} />
-        
-        {/* ✅ THE FIX: This Route captures the token correctly */}
         <Route path="/reset-password/:resetToken" element={<ResetPassword />} />
 
         {/* PROTECTED ROUTES */}
@@ -152,9 +152,14 @@ function App() {
         } />
 
         <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard username={user} avatar={avatar} onNavigate={handleNavigate} /></ProtectedRoute>} />
-        
-        {/* ✅ 2. Add Hall of Fame Route */}
         <Route path="/hall-of-fame" element={<ProtectedRoute><HallOfFame onNavigate={handleNavigate} /></ProtectedRoute>} />
+        
+        {/* ✅ 3. Add Course Catalog Route */}
+        <Route path="/course-catalog" element={
+          <ProtectedRoute>
+            <CourseCatalog username={user} onNavigate={handleNavigate} />
+          </ProtectedRoute>
+        } />
         
         <Route path="/profile" element={<ProtectedRoute><Profile onNavigate={handleNavigate} onUpdateProfile={handleUpdateProfile} showToast={showToast} /></ProtectedRoute>} />
         <Route path="/lesson" element={<ProtectedRoute><LessonView lesson={activeLesson} onComplete={handleLessonComplete} onExit={() => navigate('/dashboard')} /></ProtectedRoute>} />
