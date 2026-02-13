@@ -14,7 +14,8 @@ import Forum from './pages/Forum';
 import Stats from './pages/Stats';
 import Credits from './pages/Credits';
 import HallOfFame from './pages/HallOfFame';
-import CourseCatalog from './pages/CourseCatalog'; // ✅ 1. Import the new Course Catalog
+import CourseCatalog from './pages/CourseCatalog';
+import StudentDirectory from './pages/StudentDirectory'; // ✅ Added Student Directory import
 import { Toaster, toast } from 'react-hot-toast';
 import axios from 'axios';
 
@@ -42,7 +43,8 @@ function App() {
     else if (view === 'register') navigate('/register');
     else if (view === 'forgot-password') navigate('/forgot-password');
     else if (view === 'hall-of-fame') navigate('/hall-of-fame');
-    else if (view === 'course-catalog') navigate('/course-catalog'); // ✅ 2. Map the new route
+    else if (view === 'course-catalog') navigate('/course-catalog');
+    else if (view === 'directory') navigate('/directory'); // ✅ Added Directory mapping
     else navigate(`/${view}`);
   };
 
@@ -109,7 +111,6 @@ function App() {
     }
   };
 
-  // --- ROUTE PROTECTION ---
   const ProtectedRoute = ({ children }) => {
     if (!user) return <Navigate to="/login" replace />;
     return children;
@@ -120,46 +121,27 @@ function App() {
       <Toaster position="top-center" toastOptions={{ duration: 3000 }} />
       
       <Routes>
-        {/* PUBLIC ROUTES */}
         <Route path="/login" element={<Login onLogin={handleLogin} onNavigate={handleNavigate} />} />
         <Route path="/register" element={<Register onSignUp={(name) => handleLogin(name, false)} onNavigate={handleNavigate} />} />
         <Route path="/forgot-password" element={<ForgotPassword onNavigate={handleNavigate} />} />
         <Route path="/reset-password/:resetToken" element={<ResetPassword />} />
 
-        {/* PROTECTED ROUTES */}
         <Route path="/dashboard" element={
           <ProtectedRoute>
             {role === 'admin' ? (
-              <AdminDashboard 
-                onLogout={handleLogout} 
-                showToast={showToast} 
-                toggleTheme={toggleTheme} 
-                currentTheme={theme}
-              />
+              <AdminDashboard onLogout={handleLogout} showToast={showToast} toggleTheme={toggleTheme} currentTheme={theme} />
             ) : (
-              <Dashboard 
-                username={user} 
-                avatar={avatar} 
-                onLogout={handleLogout} 
-                onNavigate={handleNavigate} 
-                showToast={showToast}
-                toggleTheme={toggleTheme}
-                currentTheme={theme}
-                onStartLesson={handleStartLesson}
-              />
+              <Dashboard username={user} avatar={avatar} onLogout={handleLogout} onNavigate={handleNavigate} showToast={showToast} toggleTheme={toggleTheme} currentTheme={theme} onStartLesson={handleStartLesson} />
             )}
           </ProtectedRoute>
         } />
 
         <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard username={user} avatar={avatar} onNavigate={handleNavigate} /></ProtectedRoute>} />
         <Route path="/hall-of-fame" element={<ProtectedRoute><HallOfFame onNavigate={handleNavigate} /></ProtectedRoute>} />
+        <Route path="/course-catalog" element={<ProtectedRoute><CourseCatalog username={user} onNavigate={handleNavigate} /></ProtectedRoute>} />
         
-        {/* ✅ 3. Add Course Catalog Route */}
-        <Route path="/course-catalog" element={
-          <ProtectedRoute>
-            <CourseCatalog username={user} onNavigate={handleNavigate} />
-          </ProtectedRoute>
-        } />
+        {/* ✅ Added Protected Directory Route */}
+        <Route path="/directory" element={<ProtectedRoute><StudentDirectory currentUsername={user} onNavigate={handleNavigate} /></ProtectedRoute>} />
         
         <Route path="/profile" element={<ProtectedRoute><Profile onNavigate={handleNavigate} onUpdateProfile={handleUpdateProfile} showToast={showToast} /></ProtectedRoute>} />
         <Route path="/lesson" element={<ProtectedRoute><LessonView lesson={activeLesson} onComplete={handleLessonComplete} onExit={() => navigate('/dashboard')} /></ProtectedRoute>} />
@@ -167,7 +149,6 @@ function App() {
         <Route path="/stats" element={<ProtectedRoute><Stats onNavigate={handleNavigate} /></ProtectedRoute>} />
         <Route path="/credits" element={<ProtectedRoute><Credits onNavigate={handleNavigate} /></ProtectedRoute>} />
         
-        {/* FALLBACK ROUTE */}
         <Route path="*" element={<Navigate to={user ? "/dashboard" : "/login"} replace />} />
       </Routes>
     </>
