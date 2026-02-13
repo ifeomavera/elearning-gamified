@@ -24,10 +24,10 @@ function App() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // --- STATE ---
+  // --- PERSISTENT STATE ---
   const [user, setUser] = useState(() => localStorage.getItem('currentUser'));
-  const [currentId, setCurrentId] = useState(() => localStorage.getItem('userId')); 
-  const [role, setRole] = useState(() => localStorage.getItem('currentRole') || 'scholar'); // Default to scholar
+  const [currentId, setCurrentId] = useState(() => localStorage.getItem('userId') || null); 
+  const [role, setRole] = useState(() => localStorage.getItem('currentRole') || 'scholar'); 
   const [avatar, setAvatar] = useState(() => localStorage.getItem('userAvatar') || "👨‍💻");
   const [activeChatFriend, setActiveChatFriend] = useState(null); 
 
@@ -39,15 +39,19 @@ function App() {
 
   const [activeLesson, setActiveLesson] = useState(null);
 
+  // --- NAVIGATION LOGIC ---
   const handleNavigate = (view) => {
-    if (view === 'dashboard') navigate('/dashboard');
-    else if (view === 'login') navigate('/login');
-    else if (view === 'register') navigate('/register');
-    else if (view === 'forgot-password') navigate('/forgot-password');
-    else if (view === 'hall-of-fame') navigate('/hall-of-fame');
-    else if (view === 'course-catalog') navigate('/course-catalog');
-    else if (view === 'directory') navigate('/directory');
-    else navigate(`/${view}`);
+    const routes = {
+      dashboard: '/dashboard',
+      login: '/login',
+      register: '/register',
+      'forgot-password': '/forgot-password',
+      'hall-of-fame': '/hall-of-fame',
+      'course-catalog': '/course-catalog',
+      directory: '/directory',
+      credits: '/credits' // ✅ Explicit mapping
+    };
+    navigate(routes[view] || `/${view}`);
   };
 
   useEffect(() => {
@@ -57,7 +61,7 @@ function App() {
 
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
-  // ✅ UPDATED: Dynamic Role-Based Login Handler
+  // --- SESSION MANAGEMENT ---
   const handleLogin = (username, userRoleFromDB, userId) => {
     setUser(username);
     setCurrentId(userId);
@@ -71,14 +75,8 @@ function App() {
     localStorage.setItem('currentRole', userRoleFromDB);
     localStorage.setItem('userAvatar', currentAvatar);
     
-    toast.success(`Welcome back, ${username}!`);
-
-    // Routing Logic: Instructors and Admins go to the Command/Admin Dashboard
-    if (userRoleFromDB === 'admin' || userRoleFromDB === 'instructor') {
-      navigate('/dashboard'); // AdminDashboard is rendered conditionally inside this route
-    } else {
-      navigate('/dashboard');
-    }
+    toast.success(`Access Granted. Welcome, ${username}!`);
+    navigate('/dashboard');
   };
 
   const handleLogout = () => {
@@ -90,6 +88,7 @@ function App() {
     toast.success("Session terminated safely");
   };
 
+  // --- ACADEMIC LOGIC ---
   const handleStartLesson = (lesson) => {
     setActiveLesson(lesson);
     navigate('/lesson');
@@ -97,18 +96,18 @@ function App() {
 
   const handleLessonComplete = async (earnedXP) => {
     if (!activeLesson) return;
-    const toastId = toast.loading("Recording progress...");
+    const toastId = toast.loading("Syncing academic record...");
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
       await axios.put(`${apiUrl}/api/users/${user}/progress`, {
         xpEarned: earnedXP,
         courseId: activeLesson.id
       });
-      toast.success(`Milestone Reached! +${earnedXP} XP`, { id: toastId });
+      toast.success(`Milestone Cleared! +${earnedXP} XP`, { id: toastId });
       navigate('/dashboard');
     } catch (err) {
-      console.error(err);
-      toast.error("Failed to sync progress.", { id: toastId });
+      console.error("Progress sync failed:", err);
+      toast.error("Cloud sync failed. Check connection.", { id: toastId });
     }
   };
 
@@ -123,19 +122,23 @@ function App() {
       
       <Routes>
         <Route path="/login" element={<Login onLogin={handleLogin} onNavigate={handleNavigate} />} />
-        <Route path="/register" element={<Register onSignUp={(name, id, role) => handleLogin(name, role, id)} onNavigate={handleNavigate} />} />
+        <Route path="/register" element={<Register onSignUp={(name, id, userRole) => handleLogin(name, userRole, id)} onNavigate={handleNavigate} />} />
         <Route path="/forgot-password" element={<ForgotPassword onNavigate={handleNavigate} />} />
         <Route path="/reset-password/:resetToken" element={<ResetPassword />} />
 
+        {/* ✅ PUBLIC ROUTE: Accessible without login for supervisors */}
+        <Route path="/credits" element={<Credits onNavigate={handleNavigate} />} />
+
+        {/* --- PROTECTED ROUTES --- */}
         <Route path="/dashboard" element={
           <ProtectedRoute>
-            {/* ✅ DYNAMIC PORTAL RENDERING */}
             {(role === 'admin' || role === 'instructor') ? (
               <AdminDashboard 
                 onLogout={handleLogout} 
                 toggleTheme={toggleTheme} 
                 currentTheme={theme} 
-                role={role} // Pass role to distinguish between Admin/Instructor
+                role={role} 
+                onOpenChat={(friend) => setActiveChatFriend(friend)} 
               />
             ) : (
               <Dashboard 
@@ -152,16 +155,7 @@ function App() {
           </ProtectedRoute>
         } />
 
-        <Route path="/hall-of-fame" element={
-          <ProtectedRoute>
-            <HallOfFame 
-              username={user} 
-              onNavigate={handleNavigate} 
-              onOpenChat={(friend) => setActiveChatFriend(friend)} 
-            />
-          </ProtectedRoute>
-        } />
-        
+        <Route path="/hall-of-fame" element={<ProtectedRoute><HallOfFame username={user} onNavigate={handleNavigate} onOpenChat={(friend) => setActiveChatFriend(friend)} /></ProtectedRoute>} />
         <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard username={user} onNavigate={handleNavigate} /></ProtectedRoute>} />
         <Route path="/course-catalog" element={<ProtectedRoute><CourseCatalog username={user} onNavigate={handleNavigate} /></ProtectedRoute>} />
         <Route path="/directory" element={<ProtectedRoute><StudentDirectory currentUsername={user} onNavigate={handleNavigate} /></ProtectedRoute>} />
@@ -169,12 +163,11 @@ function App() {
         <Route path="/lesson" element={<ProtectedRoute><LessonView lesson={activeLesson} onComplete={handleLessonComplete} onExit={() => navigate('/dashboard')} /></ProtectedRoute>} />
         <Route path="/forum" element={<ProtectedRoute><Forum username={user} avatar={avatar} onNavigate={handleNavigate} /></ProtectedRoute>} />
         <Route path="/stats" element={<ProtectedRoute><Stats onNavigate={handleNavigate} /></ProtectedRoute>} />
-        <Route path="/credits" element={<ProtectedRoute><Credits onNavigate={handleNavigate} /></ProtectedRoute>} />
         
         <Route path="*" element={<Navigate to={user ? "/dashboard" : "/login"} replace />} />
       </Routes>
 
-      {/* GLOBAL CHAT OVERLAY */}
+      {/* ✅ PERSISTENT COMMS */}
       {activeChatFriend && (
         <ChatBox 
           currentUserId={currentId} 

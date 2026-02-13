@@ -26,7 +26,7 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
   const [activities, setActivities] = useState([]); 
   const [courses, setCourses] = useState([]);
 
-  // ✅ DYNAMIC SCHOLAR DATA (Pulled from Database)
+  // DYNAMIC SCHOLAR DATA
   const [academicLevel, setAcademicLevel] = useState("Lvl 100"); 
   const [major, setMajor] = useState("Scholar");
 
@@ -47,7 +47,6 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
       setXP(data.xp || 0);
       setLevel(data.level || 1);
       
-      // ✅ Set Dynamic Identity based on User Profile
       setMajor(data.major || "Independent Learner"); 
       setAcademicLevel(data.academicLevel || "Beginner");
 
@@ -118,7 +117,6 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
       `}</style>
 
       <div style={{ width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
-        {/* Academic Header */}
         <header style={{ marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div className="glass-card" onClick={() => onNavigate('profile')} style={{ fontSize: '22px', cursor: 'pointer', width: '42px', height: '42px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '50%' }}>
@@ -136,7 +134,6 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
           </button>
         </header>
 
-        {/* Top Progress Bar */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '25px' }}>
           <div className="glass-card xp-section" style={{ padding: '15px' }}>
             <XPBar currentXP={xp} level={level} />
@@ -157,8 +154,6 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
         </div>
 
         <div className="dashboard-grid">
-          
-          {/* Column 1: Academic Record */}
           <div className="achievements-column">
             <div className="glass-card" style={{ padding: '18px', marginBottom: '20px', borderRadius: '16px', background: 'rgba(255, 255, 255, 0.02)', border: '1px solid var(--card-border)' }}>
               <h4 style={{ margin: '0 0 12px 0', fontSize: '12px', color: 'var(--accent-color)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>Student Record</h4>
@@ -183,7 +178,6 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
             </div>
           </div>
 
-          {/* Column 2: My Enrolled Courses */}
           <div className="courses-column">
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '15px' }}>
                 <FaGraduationCap color="var(--accent-color)" size={18} />
@@ -221,10 +215,7 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
             </div>
           </div>
 
-          {/* Column 3: Social Hub & Messenger */}
           <div className="activity-column">
-            
-            {/* Messenger Widget */}
             <div className="glass-card" style={{ padding: '20px', marginBottom: '20px', borderRadius: '20px', border: '1.5px solid var(--accent-color)', background: 'rgba(108, 92, 231, 0.05)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '15px' }}>
                 <FaCommentDots color="var(--accent-color)" />
@@ -253,27 +244,40 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
             <SocialInbox username={username} friendRequests={userData?.friendRequests || []} onRefresh={fetchUserData} />
             <ActivityFeed activities={activities} />
           </div>
-
         </div>
       </div>
 
-      {/* Sidebar */}
+      {/* Sidebar Overlay */}
       <div onClick={() => setIsMenuOpen(false)} style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', zIndex: 9998, opacity: isMenuOpen ? 1 : 0, pointerEvents: isMenuOpen ? 'all' : 'none', transition: 'opacity 0.4s ease' }} />
+      
+      {/* Sidebar Content */}
       <div className="vici-sidebar sidebar-mobile" style={{ position: 'fixed', top: 0, right: isMenuOpen ? '0' : '-100%', width: '320px', height: '100%', zIndex: 9999, transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '20px', display: 'flex', justifyContent: 'flex-end' }}>
           <button onClick={() => setIsMenuOpen(false)} style={{ background: 'transparent', border: '1px solid var(--card-border)', color: 'var(--text-primary)', width: '40px', height: '40px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaTimes size={18} /></button>
         </div>
+        
         <div style={{ padding: '0 30px 30px 30px', textAlign: 'center', borderBottom: '1px solid var(--card-border)' }}>
           <div style={{ fontSize: '50px', marginBottom: '15px' }}>{avatar || "👨‍💻"}</div>
           <h2 style={{ color: 'var(--text-primary)', fontSize: '22px', fontWeight: '800', marginBottom: '5px' }}>{username}</h2>
           <div style={{ fontSize: '11px', color: 'var(--accent-color)', fontWeight: '900', textTransform: 'uppercase' }}>{academicLevel} {major} Student</div>
         </div>
+        
         <div style={{ padding: '20px 0', display: 'flex', flexDirection: 'column', height: '100%' }}>
           <button onClick={() => { onNavigate('profile'); setIsMenuOpen(false); }} className="vici-menu-item"><FaUser opacity={0.6} /> Profile Settings</button>
           <button onClick={() => { onNavigate('course-catalog'); setIsMenuOpen(false); }} className="vici-menu-item"><FaBookOpen opacity={0.6} /> Course Catalog</button>
           <button onClick={() => { onNavigate('forum'); setIsMenuOpen(false); }} className="vici-menu-item"><FaUsers opacity={0.6} /> Community</button>
-          <button onClick={toggleTheme} className="vici-menu-item">{currentTheme === 'light' ? <FaMoon opacity={0.6} /> : <FaSun color="var(--accent-color)" opacity={0.8} />}{currentTheme === 'light' ? "Dark Mode" : "Light Mode"}</button>
-          <button onClick={onLogout} className="vici-menu-item vici-sign-out" style={{ borderTop: '1px solid var(--card-border)' }}><FaSignOutAlt /> Terminate Session</button>
+          
+          {/* ✅ NEW: Project Credits Link */}
+          <button onClick={() => { onNavigate('credits'); setIsMenuOpen(false); }} className="vici-menu-item">
+            <FaUniversity opacity={0.6} /> Project Credits
+          </button>
+
+          <button onClick={toggleTheme} className="vici-menu-item">
+            {currentTheme === 'light' ? <FaMoon opacity={0.6} /> : <FaSun color="var(--accent-color)" opacity={0.8} />}
+            {currentTheme === 'light' ? "Dark Mode" : "Light Mode"}
+          </button>
+          
+          <button onClick={onLogout} className="vici-menu-item vici-sign-out"><FaSignOutAlt /> Terminate Session</button>
         </div>
       </div>
     </div>
