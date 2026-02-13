@@ -21,44 +21,41 @@ const Login = ({ onLogin, onNavigate }) => {
         password
       });
 
-      // --- SECURITY & DEV BYPASS ---
+      // ✅ 1. Get the actual role string from the database (force to lowercase just in case)
+      const userRoleFromDB = res.data.role ? String(res.data.role).toLowerCase() : 'scholar'; 
+
+      // ✅ 2. Dev Bypass Logic
       const devUsers = ['KAY FLOCK', 'Paul', 'Admin'];
       const isDev = devUsers.includes(res.data.username);
 
       if (isAdminLogin) {
-        if (res.data.role !== 'admin' && !isDev) {
-          setError("This account is not an Admin.");
+        // Block entry if the DB says they aren't admin/instructor AND they aren't a dev user
+        if (userRoleFromDB !== 'admin' && userRoleFromDB !== 'instructor' && !isDev) {
+          setError("This account is not authorized for the Instructor Portal.");
           return;
         }
       }
 
-      // ✅ THE CRITICAL HANDSHAKE:
-      // Passing (username, isAdmin, and the MongoDB _id) 
-      // The _id is essential for the Messenger to function correctly.
-      onLogin(res.data.username, isAdminLogin, res.data._id);
+      // ✅ 3. THE HANDSHAKE: Ensure a solid role string is passed
+      // If a dev logs in via the Admin portal, force the 'admin' role. 
+      // Otherwise, use the role from the DB.
+      const finalRole = (isAdminLogin && isDev) ? 'admin' : userRoleFromDB;
+      
+      onLogin(res.data.username, finalRole, res.data._id);
 
     } catch (err) {
       console.error("Login Failed:", err);
-      if (err.message === "Network Error") {
-         setError("Connection failed. Ensure the backend is running and your internet is active.");
-      } else {
-         setError(err.response?.data?.message || "Invalid credentials. Please try again.");
-      }
+      setError(err.response?.data?.message || "Invalid credentials. Please try again.");
     }
   };
 
   return (
     <div style={styles.container}>
       <div style={styles.gradientBg}></div>
-
       <div style={styles.card}>
         <div style={styles.header}>
           <div style={{...styles.iconWrapper, background: isAdminLogin ? '#fff5f5' : '#f0f9ff'}}>
-            {isAdminLogin ? (
-              <FaChalkboardTeacher size={32} color="#ff6b6b" />
-            ) : (
-              <FaUserGraduate size={32} color="#4834d4" />
-            )}
+            {isAdminLogin ? <FaChalkboardTeacher size={32} color="#ff6b6b" /> : <FaUserGraduate size={32} color="#4834d4" />}
           </div>
           <h2 style={styles.title}>{isAdminLogin ? "Instructor Portal" : "Student Portal"}</h2>
           <p style={styles.subtitle}>{isAdminLogin ? "Manage Curriculum" : "Academic Command Center"}</p>
@@ -71,7 +68,7 @@ const Login = ({ onLogin, onNavigate }) => {
             <FaUser style={styles.inputIcon} />
             <input 
               type="text" 
-              placeholder={isAdminLogin ? "Admin Email or Username" : "Email or Username"} 
+              placeholder={isAdminLogin ? "Admin ID" : "Email or Username"} 
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               style={styles.input}
@@ -95,15 +92,10 @@ const Login = ({ onLogin, onNavigate }) => {
           </div>
 
           <div style={styles.forgotRow}>
-            <span onClick={() => onNavigate('forgot-password')} style={styles.forgotLink}>
-              Forgot Password?
-            </span>
+            <span onClick={() => onNavigate('forgot-password')} style={styles.forgotLink}>Forgot Password?</span>
           </div>
 
-          <button type="submit" style={{
-            ...styles.button,
-            background: isAdminLogin ? 'linear-gradient(to right, #ff6b6b, #ee5253)' : 'linear-gradient(to right, #6c5ce7, #a29bfe)'
-          }}>
+          <button type="submit" style={{ ...styles.button, background: isAdminLogin ? 'linear-gradient(to right, #ff6b6b, #ee5253)' : 'linear-gradient(to right, #6c5ce7, #a29bfe)' }}>
             {isAdminLogin ? "Login as Admin" : "Start Session"}
           </button>
         </form>
@@ -111,10 +103,7 @@ const Login = ({ onLogin, onNavigate }) => {
         <div style={styles.footer}>
           <p style={styles.footerText}>
             {isAdminLogin ? "Not an instructor?" : "Are you an instructor?"}
-            <span 
-              onClick={() => setIsAdminLogin(!isAdminLogin)} 
-              style={{...styles.link, color: isAdminLogin ? '#4834d4' : '#ff6b6b'}}
-            >
+            <span onClick={() => setIsAdminLogin(!isAdminLogin)} style={{...styles.link, color: isAdminLogin ? '#4834d4' : '#ff6b6b'}}>
               {isAdminLogin ? " Student Login" : " Admin Login"}
             </span>
           </p>

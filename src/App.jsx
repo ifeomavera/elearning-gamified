@@ -24,10 +24,15 @@ function App() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // --- PERSISTENT STATE ---
   const [user, setUser] = useState(() => localStorage.getItem('currentUser'));
   const [currentId, setCurrentId] = useState(() => localStorage.getItem('userId') || null); 
-  const [role, setRole] = useState(() => localStorage.getItem('currentRole') || 'scholar'); 
+  
+  // ✅ 1. NORMALIZE STATE: Force lowercase on startup to prevent 'Admin' vs 'admin' routing bugs
+  const [role, setRole] = useState(() => {
+    const savedRole = localStorage.getItem('currentRole');
+    return savedRole ? savedRole.toLowerCase() : 'scholar';
+  }); 
+
   const [avatar, setAvatar] = useState(() => localStorage.getItem('userAvatar') || "👨‍💻");
   const [activeChatFriend, setActiveChatFriend] = useState(null); 
 
@@ -39,7 +44,6 @@ function App() {
 
   const [activeLesson, setActiveLesson] = useState(null);
 
-  // --- NAVIGATION LOGIC ---
   const handleNavigate = (view) => {
     const routes = {
       dashboard: '/dashboard',
@@ -49,7 +53,7 @@ function App() {
       'hall-of-fame': '/hall-of-fame',
       'course-catalog': '/course-catalog',
       directory: '/directory',
-      credits: '/credits' // ✅ Explicit mapping
+      credits: '/credits' 
     };
     navigate(routes[view] || `/${view}`);
   };
@@ -61,18 +65,20 @@ function App() {
 
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
-  // --- SESSION MANAGEMENT ---
+  // ✅ 2. NORMALIZE LOGIN: Standardize the incoming string from Login.jsx
   const handleLogin = (username, userRoleFromDB, userId) => {
+    const normalizedRole = userRoleFromDB ? String(userRoleFromDB).toLowerCase() : 'scholar';
+
     setUser(username);
     setCurrentId(userId);
-    setRole(userRoleFromDB);
+    setRole(normalizedRole);
     
     const currentAvatar = localStorage.getItem('userAvatar') || "👨‍💻";
     setAvatar(currentAvatar);
     
     localStorage.setItem('currentUser', username);
     localStorage.setItem('userId', userId);
-    localStorage.setItem('currentRole', userRoleFromDB);
+    localStorage.setItem('currentRole', normalizedRole);
     localStorage.setItem('userAvatar', currentAvatar);
     
     toast.success(`Access Granted. Welcome, ${username}!`);
@@ -88,7 +94,6 @@ function App() {
     toast.success("Session terminated safely");
   };
 
-  // --- ACADEMIC LOGIC ---
   const handleStartLesson = (lesson) => {
     setActiveLesson(lesson);
     navigate('/lesson');
@@ -122,16 +127,15 @@ function App() {
       
       <Routes>
         <Route path="/login" element={<Login onLogin={handleLogin} onNavigate={handleNavigate} />} />
-        <Route path="/register" element={<Register onSignUp={(name, id, userRole) => handleLogin(name, userRole, id)} onNavigate={handleNavigate} />} />
+        <Route path="/register" element={<Register onSignUp={(name, id, uRole) => handleLogin(name, uRole, id)} onNavigate={handleNavigate} />} />
         <Route path="/forgot-password" element={<ForgotPassword onNavigate={handleNavigate} />} />
         <Route path="/reset-password/:resetToken" element={<ResetPassword />} />
 
-        {/* ✅ PUBLIC ROUTE: Accessible without login for supervisors */}
         <Route path="/credits" element={<Credits onNavigate={handleNavigate} />} />
 
-        {/* --- PROTECTED ROUTES --- */}
         <Route path="/dashboard" element={
           <ProtectedRoute>
+            {/* ✅ 3. THE FIX: The router now checks against a normalized string, not a boolean */}
             {(role === 'admin' || role === 'instructor') ? (
               <AdminDashboard 
                 onLogout={handleLogout} 
@@ -162,12 +166,13 @@ function App() {
         <Route path="/profile" element={<ProtectedRoute><Profile onNavigate={handleNavigate} onUpdateProfile={setUser} /></ProtectedRoute>} />
         <Route path="/lesson" element={<ProtectedRoute><LessonView lesson={activeLesson} onComplete={handleLessonComplete} onExit={() => navigate('/dashboard')} /></ProtectedRoute>} />
         <Route path="/forum" element={<ProtectedRoute><Forum username={user} avatar={avatar} onNavigate={handleNavigate} /></ProtectedRoute>} />
-        <Route path="/stats" element={<ProtectedRoute><Stats onNavigate={handleNavigate} /></ProtectedRoute>} />
+        
+        {/* ✅ DYNAMIC STATS: Passed the 'username' prop down to the component */}
+        <Route path="/stats" element={<ProtectedRoute><Stats username={user} onNavigate={handleNavigate} /></ProtectedRoute>} />
         
         <Route path="*" element={<Navigate to={user ? "/dashboard" : "/login"} replace />} />
       </Routes>
 
-      {/* ✅ PERSISTENT COMMS */}
       {activeChatFriend && (
         <ChatBox 
           currentUserId={currentId} 
