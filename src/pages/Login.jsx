@@ -13,9 +13,7 @@ const Login = ({ onLogin, onNavigate }) => {
     e.preventDefault();
     setError('');
 
-    // ⚠️ HARDCODED FIX: Directly use the live Render backend
-    const apiUrl = import.meta.env.VITE_API_URL;
-    console.log("🔌 Attempting login to:", `${apiUrl}/api/auth/login`);
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
     try {
       const res = await axios.post(`${apiUrl}/api/auth/login`, {
@@ -23,29 +21,26 @@ const Login = ({ onLogin, onNavigate }) => {
         password
       });
 
-      // --- SECURITY CHECK ---
-      
-      // ✅ DEV BYPASS: Add your usernames here to access ANY side
+      // --- SECURITY & DEV BYPASS ---
       const devUsers = ['KAY FLOCK', 'Paul', 'Admin'];
       const isDev = devUsers.includes(res.data.username);
 
-      // If trying to access Admin Panel...
       if (isAdminLogin) {
-        // Block if NOT admin AND NOT a dev
         if (res.data.role !== 'admin' && !isDev) {
           setError("This account is not an Admin.");
           return;
         }
       }
 
-      // Success! Log them in
-      onLogin(res.data.username, isAdminLogin);
+      // ✅ THE CRITICAL HANDSHAKE:
+      // Passing (username, isAdmin, and the MongoDB _id) 
+      // The _id is essential for the Messenger to function correctly.
+      onLogin(res.data.username, isAdminLogin, res.data._id);
 
     } catch (err) {
       console.error("Login Failed:", err);
-      // Give a more specific error message if the connection failed entirely
       if (err.message === "Network Error") {
-         setError("Could not connect to server. Please check your internet or try again later.");
+         setError("Connection failed. Ensure the backend is running and your internet is active.");
       } else {
          setError(err.response?.data?.message || "Invalid credentials. Please try again.");
       }
@@ -66,7 +61,7 @@ const Login = ({ onLogin, onNavigate }) => {
             )}
           </div>
           <h2 style={styles.title}>{isAdminLogin ? "Instructor Portal" : "Student Portal"}</h2>
-          <p style={styles.subtitle}>{isAdminLogin ? "Manage Curriculum" : "Gamify Your Learning"}</p>
+          <p style={styles.subtitle}>{isAdminLogin ? "Manage Curriculum" : "Academic Command Center"}</p>
         </div>
 
         {error && <div style={styles.errorBox}>{error}</div>}
@@ -109,7 +104,7 @@ const Login = ({ onLogin, onNavigate }) => {
             ...styles.button,
             background: isAdminLogin ? 'linear-gradient(to right, #ff6b6b, #ee5253)' : 'linear-gradient(to right, #6c5ce7, #a29bfe)'
           }}>
-            {isAdminLogin ? "Login as Admin" : "Start Learning"}
+            {isAdminLogin ? "Login as Admin" : "Start Session"}
           </button>
         </form>
 
@@ -125,7 +120,7 @@ const Login = ({ onLogin, onNavigate }) => {
           </p>
           {!isAdminLogin && (
             <p style={{...styles.footerText, marginTop: '10px'}}>
-              New here? <span onClick={() => onNavigate('register')} style={styles.link}>Create Account</span>
+              New scholar? <span onClick={() => onNavigate('register')} style={styles.link}>Create Account</span>
             </p>
           )}
         </div>
@@ -134,84 +129,23 @@ const Login = ({ onLogin, onNavigate }) => {
   );
 };
 
-// --- MODERN STYLES ---
 const styles = {
-  container: {
-    width: '100vw',
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontFamily: "'Inter', 'Segoe UI', sans-serif",
-    position: 'relative',
-    overflow: 'hidden'
-  },
-  gradientBg: {
-    position: 'absolute',
-    top: 0, left: 0, right: 0, bottom: 0,
-    background: 'linear-gradient(135deg, #a29bfe 0%, #74b9ff 100%)',
-    zIndex: -1
-  },
-  card: {
-    width: '100%',
-    maxWidth: '420px',
-    background: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: '24px',
-    padding: '40px',
-    boxShadow: '0 20px 40px rgba(0, 0, 0, 0.1)',
-    backdropFilter: 'blur(10px)',
-    margin: '20px'
-  },
+  container: { width: '100vw', minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Inter', sans-serif", position: 'relative', overflow: 'hidden' },
+  gradientBg: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'linear-gradient(135deg, #6c5ce7 0%, #74b9ff 100%)', zIndex: -1 },
+  card: { width: '100%', maxWidth: '420px', background: 'rgba(255, 255, 255, 0.98)', borderRadius: '24px', padding: '40px', boxShadow: '0 20px 40px rgba(0, 0, 0, 0.15)', backdropFilter: 'blur(10px)', margin: '20px' },
   header: { textAlign: 'center', marginBottom: '30px' },
-  iconWrapper: {
-    width: '64px', height: '64px',
-    borderRadius: '50%',
-    display: 'flex', alignItems: 'center', justifyContent: 'center',
-    margin: '0 auto 15px auto',
-    boxShadow: '0 4px 10px rgba(0,0,0,0.05)'
-  },
+  iconWrapper: { width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 15px auto' },
   title: { fontSize: '24px', fontWeight: '800', color: '#2d3436', margin: '0' },
   subtitle: { fontSize: '14px', color: '#636e72', marginTop: '5px' },
   form: { display: 'flex', flexDirection: 'column', gap: '15px' },
   inputGroup: { position: 'relative' },
-  inputIcon: {
-    position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)',
-    color: '#b2bec3', fontSize: '16px', zIndex: 1
-  },
-  input: {
-    width: '100%',
-    padding: '14px 45px',
-    borderRadius: '12px',
-    border: '2px solid #f1f2f6',
-    background: '#f8f9fa',
-    fontSize: '15px',
-    color: '#2d3436',
-    outline: 'none',
-    transition: 'all 0.2s ease',
-  },
-  eyeIcon: {
-    position: 'absolute', right: '15px', top: '50%', transform: 'translateY(-50%)',
-    cursor: 'pointer', color: '#b2bec3', zIndex: 2
-  },
+  inputIcon: { position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', color: '#b2bec3', zIndex: 1 },
+  input: { width: '100%', padding: '14px 45px', borderRadius: '12px', border: '1px solid #f1f2f6', background: '#f8f9fa', fontSize: '15px', color: '#2d3436', outline: 'none' },
+  eyeIcon: { position: 'absolute', right: '15px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#b2bec3', zIndex: 2 },
   forgotRow: { textAlign: 'right', marginTop: '-5px' },
-  forgotLink: { fontSize: '13px', color: '#636e72', cursor: 'pointer', fontWeight: '500' },
-  button: {
-    width: '100%',
-    padding: '16px',
-    borderRadius: '12px',
-    border: 'none',
-    color: 'white',
-    fontSize: '16px',
-    fontWeight: '700',
-    cursor: 'pointer',
-    marginTop: '10px',
-    boxShadow: '0 4px 15px rgba(0,0,0,0.1)',
-    transition: 'transform 0.1s ease'
-  },
-  errorBox: {
-    background: '#ffeaa7', color: '#d63031', padding: '12px', borderRadius: '8px',
-    fontSize: '14px', textAlign: 'center', marginBottom: '20px', fontWeight: '500'
-  },
+  forgotLink: { fontSize: '12px', color: '#636e72', cursor: 'pointer' },
+  button: { width: '100%', padding: '16px', borderRadius: '12px', border: 'none', color: 'white', fontSize: '16px', fontWeight: '700', cursor: 'pointer', marginTop: '10px' },
+  errorBox: { background: '#ffeaa7', color: '#d63031', padding: '12px', borderRadius: '8px', fontSize: '14px', textAlign: 'center', marginBottom: '20px' },
   footer: { marginTop: '30px', textAlign: 'center', borderTop: '1px solid #f1f2f6', paddingTop: '20px' },
   footerText: { fontSize: '14px', color: '#636e72' },
   link: { color: '#4834d4', fontWeight: '700', cursor: 'pointer', marginLeft: '5px' }
