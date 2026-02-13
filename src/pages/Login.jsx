@@ -14,7 +14,7 @@ const Login = ({ onLogin, onNavigate }) => {
     setError('');
 
     // ⚠️ HARDCODED FIX: Directly use the live Render backend
-    const apiUrl = 'https://elearning-api.onrender.com';
+    const apiUrl = import.meta.env.VITE_API_URL;
     console.log("🔌 Attempting login to:", `${apiUrl}/api/auth/login`);
 
     try {

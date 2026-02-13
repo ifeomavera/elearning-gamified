@@ -10,7 +10,7 @@ const HallOfFame = ({ onNavigate }) => {
     const fetchLeaders = async () => {
       try {
         // Use the live backend URL
-        const apiUrl = 'https://elearning-api.onrender.com';
+        const apiUrl = import.meta.env.VITE_API_URL;
         const res = await axios.get(`${apiUrl}/api/users/leaderboard`);
         setLeaders(res.data);
         setLoading(false);
