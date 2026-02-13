@@ -1,151 +1,140 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { FaTrophy, FaMedal, FaCrown, FaArrowLeft } from 'react-icons/fa';
+import { socialApi } from '../api/social'; // Import the helper we just made
 
-const HallOfFame = ({ onNavigate }) => {
-  const [leaders, setLeaders] = useState([]);
+const HallOfFame = () => {
+  const [users, setUsers] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
+  // Load current user from local storage
   useEffect(() => {
-    const fetchLeaders = async () => {
-      try {
-        // Use the live backend URL
-        const apiUrl = import.meta.env.VITE_API_URL;
-        const res = await axios.get(`${apiUrl}/api/users/leaderboard`);
-        setLeaders(res.data);
-        setLoading(false);
-      } catch (err) {
-        console.error("Error fetching hall of fame:", err);
-        setLoading(false);
-      }
-    };
-    fetchLeaders();
+    const storedUser = JSON.parse(localStorage.getItem('user'));
+    setCurrentUser(storedUser);
+    fetchUsers(storedUser);
   }, []);
 
-  const getPodiumStyle = (rank) => {
-    if (rank === 0) return { // 1st Place (Gold)
-      background: 'linear-gradient(135deg, #ffd700 0%, #f1c40f 100%)',
-      transform: 'scale(1.1)',
-      zIndex: 10,
-      border: '4px solid #fff',
-      boxShadow: '0 10px 30px rgba(255, 215, 0, 0.5)'
-    };
-    if (rank === 1) return { // 2nd Place (Silver)
-      background: 'linear-gradient(135deg, #bdc3c7 0%, #95a5a6 100%)',
-      transform: 'scale(0.95)',
-      marginTop: '40px', // Push down slightly
-      boxShadow: '0 10px 25px rgba(189, 195, 199, 0.5)'
-    };
-    if (rank === 2) return { // 3rd Place (Bronze)
-      background: 'linear-gradient(135deg, #e67e22 0%, #d35400 100%)',
-      transform: 'scale(0.95)',
-      marginTop: '40px', // Push down slightly
-      boxShadow: '0 10px 25px rgba(211, 84, 0, 0.5)'
-    };
-    return {};
+  const fetchUsers = async (myUser) => {
+    try {
+      const API_URL = import.meta.env.VITE_API_URL;
+      const res = await axios.get(`${API_URL}/api/users`); // Assuming you have a route to get all users
+      
+      // Sort users by XP (Highest first)
+      const sortedUsers = res.data.sort((a, b) => b.xp - a.xp);
+      setUsers(sortedUsers);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      setLoading(false);
+    }
   };
 
+  const handleSendRequest = async (targetUserId) => {
+    try {
+      await socialApi.sendRequest(currentUser._id, targetUserId);
+      alert('Friend Request Sent!');
+      // Optional: Refresh list to update button state (advanced)
+    } catch (error) {
+      alert(error.response?.data?.error || 'Error sending request');
+    }
+  };
+
+  // Helper to check friend status
+  const getFriendStatus = (targetUser) => {
+    if (!currentUser) return 'none';
+    if (targetUser.friends.includes(currentUser._id)) return 'friend';
+    if (targetUser.friendRequests.some(r => r.from === currentUser._id)) return 'pending';
+    return 'none';
+  };
+
+  if (loading) return <div className="text-center mt-20 text-white">Loading Champions...</div>;
+
+  const topThree = users.slice(0, 3);
+  const others = users.slice(3);
+
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-body)', padding: '20px', color: 'var(--text-primary)' }}>
-      
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '40px' }}>
-        <button onClick={() => onNavigate('dashboard')} style={{ background: 'none', border: 'none', fontSize: '24px', cursor: 'pointer', marginRight: '15px', color: 'var(--text-primary)' }}>
-          <FaArrowLeft />
-        </button>
-        <h1 style={{ margin: 0, fontSize: '28px', fontWeight: '800' }}>🏆 Hall of Fame</h1>
+    <div className="min-h-screen bg-gradient-to-b from-purple-900 to-indigo-900 p-8 text-white">
+      <h1 className="text-4xl font-bold text-center mb-12 text-yellow-400 drop-shadow-lg">🏆 Hall of Fame 🏆</h1>
+
+      {/* --- TOP 3 PODIUM --- */}
+      <div className="flex flex-col md:flex-row justify-center items-end gap-6 mb-16">
+        {topThree.map((user, index) => {
+          let cardStyle = "";
+          let badge = "";
+          let height = "";
+          
+          if (index === 0) { // 1st Place (Gold)
+             cardStyle = "bg-yellow-500 from-yellow-400 to-yellow-600 border-yellow-300";
+             badge = "👑";
+             height = "h-80"; 
+          } else if (index === 1) { // 2nd Place (Silver)
+             cardStyle = "bg-gray-400 from-gray-300 to-gray-500 border-gray-200";
+             badge = "🥈";
+             height = "h-72";
+          } else { // 3rd Place (Bronze)
+             cardStyle = "bg-orange-500 from-orange-400 to-orange-600 border-orange-300";
+             badge = "🥉";
+             height = "h-64";
+          }
+
+          return (
+            <div key={user._id} className={`relative flex flex-col items-center justify-center w-64 ${height} rounded-t-3xl shadow-2xl border-t-4 ${cardStyle} bg-gradient-to-b transform hover:scale-105 transition duration-300`}>
+              <div className="text-6xl mb-4">{badge}</div>
+              <h2 className="text-2xl font-bold uppercase tracking-wider">{user.username}</h2>
+              <p className="text-lg font-mono mt-2 opacity-90">{user.xp} XP</p>
+              <p className="text-sm mt-1 opacity-75">Level {user.level}</p>
+
+              {/* Action Button */}
+              {currentUser && currentUser._id !== user._id && (
+                <button 
+                  onClick={() => handleSendRequest(user._id)}
+                  className="mt-6 px-6 py-2 bg-white text-gray-900 font-bold rounded-full shadow-md hover:bg-gray-100 transition"
+                  disabled={getFriendStatus(user) !== 'none'}
+                >
+                  {getFriendStatus(user) === 'friend' ? 'Chat' : 
+                   getFriendStatus(user) === 'pending' ? 'Pending' : 'Add Friend'}
+                </button>
+              )}
+            </div>
+          );
+        })}
       </div>
 
-      {loading ? (
-        <p>Polishing the trophies...</p>
-      ) : (
-        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-          
-          {/* TOP 3 PODIUM */}
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'flex-end', gap: '15px', marginBottom: '50px', flexWrap: 'wrap' }}>
+      {/* --- THE REST OF THE LIST --- */}
+      <div className="max-w-4xl mx-auto bg-white/10 backdrop-blur-md rounded-2xl p-6 shadow-xl">
+        <h3 className="text-xl font-semibold mb-6 text-gray-300 border-b border-gray-600 pb-2">Honorable Mentions</h3>
+        {others.map((user, index) => (
+          <div key={user._id} className="flex items-center justify-between p-4 mb-3 bg-white/5 hover:bg-white/10 rounded-lg transition">
+            <div className="flex items-center gap-4">
+              <span className="text-2xl font-mono font-bold text-gray-400 w-8">#{index + 4}</span>
+              <div>
+                <p className="text-lg font-bold">{user.username}</p>
+                <p className="text-sm text-gray-400">Level {user.level}</p>
+              </div>
+            </div>
             
-            {/* 2nd Place */}
-            {leaders[1] && (
-              <div style={{ ...styles.podiumCard, ...getPodiumStyle(1) }}>
-                <FaMedal size={30} color="#fff" style={{ marginBottom: '10px' }} />
-                <div style={styles.avatar}>{leaders[1].avatar || "🥈"}</div>
-                <h3>{leaders[1].username}</h3>
-                <p>{leaders[1].xp} XP</p>
-              </div>
-            )}
-
-            {/* 1st Place */}
-            {leaders[0] && (
-              <div style={{ ...styles.podiumCard, ...getPodiumStyle(0) }}>
-                <FaCrown size={40} color="#fff" style={{ marginBottom: '10px' }} />
-                <div style={{ ...styles.avatar, width: '80px', height: '80px', fontSize: '40px' }}>{leaders[0].avatar || "👑"}</div>
-                <h2 style={{ fontSize: '22px' }}>{leaders[0].username}</h2>
-                <p style={{ fontWeight: 'bold', fontSize: '18px' }}>{leaders[0].xp} XP</p>
-              </div>
-            )}
-
-            {/* 3rd Place */}
-            {leaders[2] && (
-              <div style={{ ...styles.podiumCard, ...getPodiumStyle(2) }}>
-                <FaMedal size={30} color="#fff" style={{ marginBottom: '10px' }} />
-                <div style={styles.avatar}>{leaders[2].avatar || "🥉"}</div>
-                <h3>{leaders[2].username}</h3>
-                <p>{leaders[2].xp} XP</p>
-              </div>
-            )}
+            <div className="flex items-center gap-6">
+              <span className="font-mono text-yellow-400 font-bold">{user.xp} XP</span>
+              {currentUser && currentUser._id !== user._id && (
+                <button 
+                  onClick={() => handleSendRequest(user._id)}
+                  className={`px-4 py-1.5 text-sm font-semibold rounded-lg transition ${
+                    getFriendStatus(user) === 'none' 
+                    ? 'bg-blue-600 hover:bg-blue-500 text-white' 
+                    : 'bg-gray-600 text-gray-300 cursor-not-allowed'
+                  }`}
+                  disabled={getFriendStatus(user) !== 'none'}
+                >
+                  {getFriendStatus(user) === 'friend' ? 'Message' : 
+                   getFriendStatus(user) === 'pending' ? 'Sent' : 'Connect'}
+                </button>
+              )}
+            </div>
           </div>
-
-          {/* THE REST OF THE LEGENDS (List View) */}
-          <div style={{ background: 'rgba(255,255,255,0.1)', borderRadius: '20px', padding: '20px', backdropFilter: 'blur(10px)' }}>
-            {leaders.slice(3).map((user, index) => (
-              <div key={user.username} style={styles.listItem}>
-                <span style={{ fontSize: '18px', fontWeight: 'bold', width: '30px', color: 'var(--text-secondary)' }}>#{index + 4}</span>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flex: 1 }}>
-                  <div style={{ fontSize: '24px' }}>{user.avatar || "👨‍💻"}</div>
-                  <span style={{ fontWeight: '600' }}>{user.username}</span>
-                </div>
-                <span style={{ fontWeight: 'bold', color: 'var(--accent-color)' }}>{user.xp} XP</span>
-              </div>
-            ))}
-          </div>
-
-        </div>
-      )}
+        ))}
+      </div>
     </div>
   );
-};
-
-const styles = {
-  podiumCard: {
-    padding: '20px',
-    borderRadius: '20px',
-    textAlign: 'center',
-    color: '#fff',
-    width: '140px',
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    position: 'relative',
-    transition: 'transform 0.3s ease'
-  },
-  avatar: {
-    width: '60px',
-    height: '60px',
-    background: 'rgba(255,255,255,0.3)',
-    borderRadius: '50%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '30px',
-    marginBottom: '10px'
-  },
-  listItem: {
-    display: 'flex',
-    alignItems: 'center',
-    padding: '15px',
-    borderBottom: '1px solid rgba(0,0,0,0.05)',
-    color: 'var(--text-primary)'
-  }
 };
 
 export default HallOfFame;
