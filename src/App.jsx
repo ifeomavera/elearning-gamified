@@ -20,14 +20,23 @@ import ChatBox from './components/ChatBox';
 import { Toaster, toast } from 'react-hot-toast';
 import axios from 'axios';
 
+// ✅ FIXED: Moved ProtectedRoute OUTSIDE of App so it doesn't trigger a remount
+const ProtectedRoute = ({ user, children }) => {
+  if (!user) return <Navigate to="/login" replace />;
+  return children;
+};
+
 function App() {
   const navigate = useNavigate();
   const location = useLocation();
 
   const [user, setUser] = useState(() => localStorage.getItem('currentUser'));
-  const [currentId, setCurrentId] = useState(() => localStorage.getItem('userId') || null); 
   
-  // ✅ 1. NORMALIZE STATE: Force lowercase on startup to prevent 'Admin' vs 'admin' routing bugs
+  const [currentId, setCurrentId] = useState(() => {
+    const savedId = localStorage.getItem('userId');
+    return (savedId && savedId !== 'undefined' && savedId !== 'null') ? savedId : null;
+  }); 
+  
   const [role, setRole] = useState(() => {
     const savedRole = localStorage.getItem('currentRole');
     return savedRole ? savedRole.toLowerCase() : 'scholar';
@@ -43,6 +52,12 @@ function App() {
   });
 
   const [activeLesson, setActiveLesson] = useState(null);
+
+  useEffect(() => {
+    if (currentId && currentId !== 'undefined' && currentId !== 'null') {
+      localStorage.setItem('userId', currentId);
+    }
+  }, [currentId]);
 
   const handleNavigate = (view) => {
     const routes = {
@@ -65,12 +80,16 @@ function App() {
 
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
-  // ✅ 2. NORMALIZE LOGIN: Standardize the incoming string from Login.jsx
   const handleLogin = (username, userRoleFromDB, userId) => {
+    if (!userId || userId === 'undefined') {
+      console.error("Critical Auth Error: Missing User ID in handshake.");
+      return toast.error("Identity sync failed. Please contact admin.");
+    }
+
     const normalizedRole = userRoleFromDB ? String(userRoleFromDB).toLowerCase() : 'scholar';
 
     setUser(username);
-    setCurrentId(userId);
+    setCurrentId(userId); 
     setRole(normalizedRole);
     
     const currentAvatar = localStorage.getItem('userAvatar') || "👨‍💻";
@@ -89,6 +108,7 @@ function App() {
     setUser(null);
     setCurrentId(null);
     setRole('scholar');
+    setActiveChatFriend(null);
     localStorage.clear();
     navigate('/login');
     toast.success("Session terminated safely");
@@ -103,7 +123,7 @@ function App() {
     if (!activeLesson) return;
     const toastId = toast.loading("Syncing academic record...");
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       await axios.put(`${apiUrl}/api/users/${user}/progress`, {
         xpEarned: earnedXP,
         courseId: activeLesson.id
@@ -116,9 +136,13 @@ function App() {
     }
   };
 
-  const ProtectedRoute = ({ children }) => {
-    if (!user) return <Navigate to="/login" replace />;
-    return children;
+  const openChat = (friend) => {
+    console.log("Chat signal received for:", friend?.username, "Target ID:", friend?._id || friend?.id);
+    if (friend && (friend._id || friend.id)) {
+      setActiveChatFriend(friend);
+    } else {
+      toast.error("Unable to establish secure comms link.");
+    }
   };
 
   return (
@@ -130,19 +154,17 @@ function App() {
         <Route path="/register" element={<Register onSignUp={(name, id, uRole) => handleLogin(name, uRole, id)} onNavigate={handleNavigate} />} />
         <Route path="/forgot-password" element={<ForgotPassword onNavigate={handleNavigate} />} />
         <Route path="/reset-password/:resetToken" element={<ResetPassword />} />
-
         <Route path="/credits" element={<Credits onNavigate={handleNavigate} />} />
 
         <Route path="/dashboard" element={
-          <ProtectedRoute>
-            {/* ✅ 3. THE FIX: The router now checks against a normalized string, not a boolean */}
+          <ProtectedRoute user={user}>
             {(role === 'admin' || role === 'instructor') ? (
               <AdminDashboard 
                 onLogout={handleLogout} 
                 toggleTheme={toggleTheme} 
                 currentTheme={theme} 
                 role={role} 
-                onOpenChat={(friend) => setActiveChatFriend(friend)} 
+                onOpenChat={openChat} 
               />
             ) : (
               <Dashboard 
@@ -153,32 +175,34 @@ function App() {
                 toggleTheme={toggleTheme} 
                 currentTheme={theme} 
                 onStartLesson={handleStartLesson}
-                onOpenChat={(friend) => setActiveChatFriend(friend)} 
+                onOpenChat={openChat} 
               />
             )}
           </ProtectedRoute>
         } />
 
-        <Route path="/hall-of-fame" element={<ProtectedRoute><HallOfFame username={user} onNavigate={handleNavigate} onOpenChat={(friend) => setActiveChatFriend(friend)} /></ProtectedRoute>} />
-        <Route path="/leaderboard" element={<ProtectedRoute><Leaderboard username={user} onNavigate={handleNavigate} /></ProtectedRoute>} />
-        <Route path="/course-catalog" element={<ProtectedRoute><CourseCatalog username={user} onNavigate={handleNavigate} /></ProtectedRoute>} />
-        <Route path="/directory" element={<ProtectedRoute><StudentDirectory currentUsername={user} onNavigate={handleNavigate} /></ProtectedRoute>} />
-        <Route path="/profile" element={<ProtectedRoute><Profile onNavigate={handleNavigate} onUpdateProfile={setUser} /></ProtectedRoute>} />
-        <Route path="/lesson" element={<ProtectedRoute><LessonView lesson={activeLesson} onComplete={handleLessonComplete} onExit={() => navigate('/dashboard')} /></ProtectedRoute>} />
-        <Route path="/forum" element={<ProtectedRoute><Forum username={user} avatar={avatar} onNavigate={handleNavigate} /></ProtectedRoute>} />
-        
-        {/* ✅ DYNAMIC STATS: Passed the 'username' prop down to the component */}
-        <Route path="/stats" element={<ProtectedRoute><Stats username={user} onNavigate={handleNavigate} /></ProtectedRoute>} />
+        {/* ✅ PASSED USER PROP TO ALL PROTECTED ROUTES */}
+        <Route path="/hall-of-fame" element={<ProtectedRoute user={user}><HallOfFame username={user} onNavigate={handleNavigate} onOpenChat={openChat} /></ProtectedRoute>} />
+        <Route path="/leaderboard" element={<ProtectedRoute user={user}><Leaderboard username={user} onNavigate={handleNavigate} /></ProtectedRoute>} />
+        <Route path="/course-catalog" element={<ProtectedRoute user={user}><CourseCatalog username={user} onNavigate={handleNavigate} /></ProtectedRoute>} />
+        <Route path="/directory" element={<ProtectedRoute user={user}><StudentDirectory currentUsername={user} onNavigate={handleNavigate} /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute user={user}><Profile onNavigate={handleNavigate} onUpdateProfile={setUser} /></ProtectedRoute>} />
+        <Route path="/lesson" element={<ProtectedRoute user={user}><LessonView lesson={activeLesson} onComplete={handleLessonComplete} onExit={() => navigate('/dashboard')} /></ProtectedRoute>} />
+        <Route path="/forum" element={<ProtectedRoute user={user}><Forum username={user} avatar={avatar} onNavigate={handleNavigate} /></ProtectedRoute>} />
+        <Route path="/stats" element={<ProtectedRoute user={user}><Stats username={user} onNavigate={handleNavigate} /></ProtectedRoute>} />
         
         <Route path="*" element={<Navigate to={user ? "/dashboard" : "/login"} replace />} />
       </Routes>
 
-      {activeChatFriend && (
-        <ChatBox 
-          currentUserId={currentId} 
-          friend={activeChatFriend} 
-          onClose={() => setActiveChatFriend(null)} 
-        />
+      {/* ✅ PERSISTENT MESSENGER: High Z-Index ensures it stays above sidebars */}
+      {activeChatFriend && currentId && (
+        <div style={{ position: 'fixed', zIndex: 100000, bottom: 0, right: 0 }}>
+            <ChatBox 
+              currentUserId={currentId} 
+              friend={activeChatFriend} 
+              onClose={() => setActiveChatFriend(null)} 
+            />
+        </div>
       )}
     </>
   );

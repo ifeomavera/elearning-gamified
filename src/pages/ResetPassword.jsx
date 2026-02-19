@@ -40,7 +40,7 @@ const ResetPassword = () => {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://127.0.0.1:5000';
 
       // ✅ Sends the captured token to the backend
-      await axios.put(`${apiUrl}/api/auth/resetpassword/${resetToken}`, {
+      await axios.put(`${apiUrl}/api/auth/reset-password/${resetToken}`, {
         password
       });
 

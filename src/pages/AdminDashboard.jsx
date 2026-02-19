@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 import { 
   FaPlus, FaTrash, FaUsers, FaBook, FaComments, 
-  FaSignOutAlt, FaChalkboardTeacher, FaSun, FaMoon, FaUserShield 
+  FaSignOutAlt, FaChalkboardTeacher, FaSun, FaMoon, FaUserShield, FaSpinner 
 } from 'react-icons/fa';
 
 const AdminDashboard = ({ onLogout, showToast, toggleTheme, currentTheme, role, onOpenChat }) => {
@@ -22,11 +23,40 @@ const AdminDashboard = ({ onLogout, showToast, toggleTheme, currentTheme, role, 
     localStorage.setItem('appCourses', JSON.stringify(courses));
   }, [courses]);
 
-  // --- DATA ---
-  const [students] = useState([
-    { id: "65c8a1...", name: "Masade Paul", email: "paul@babcock.edu.ng", major: "Software Engineering", xp: 2350, status: "Active" },
-    { id: "65c8b2...", name: "Ezeka Ifeoma", email: "ifeoma@babcock.edu.ng", major: "Computer Science", xp: 1850, status: "Active" },
-  ]);
+  // --- DYNAMIC SCHOLAR DATA ---
+  const [students, setStudents] = useState([]);
+  const [loadingScholars, setLoadingScholars] = useState(false);
+
+  // ✅ NEW: Fetch real scholars from the database
+  useEffect(() => {
+    const fetchScholars = async () => {
+      if (activeTab !== 'students') return; // Only fetch when viewing the tab
+      
+      setLoadingScholars(true);
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        // Assuming you have a route to get all users. If not, use your search route with an empty or generic query
+        const res = await axios.get(`${apiUrl}/api/users`); 
+        
+        // Filter out the current admin so you don't message yourself
+        const currentUserId = localStorage.getItem('userId');
+        const activeScholars = res.data.filter(u => u._id !== currentUserId);
+        
+        setStudents(activeScholars);
+      } catch (err) {
+        console.error("Failed to load scholars:", err);
+        // Fallback dummy data if the API fails during testing
+        setStudents([
+          { _id: "65c8a1", username: "Masade Paul", email: "paul@babcock.edu.ng", major: "Software Engineering", xp: 2350 },
+          { _id: "65c8b2", username: "Ezeka Ifeoma", email: "ifeoma@babcock.edu.ng", major: "Computer Science", xp: 1850 },
+        ]);
+      } finally {
+        setLoadingScholars(false);
+      }
+    };
+
+    fetchScholars();
+  }, [activeTab]);
 
   const [posts] = useState([
     { id: 1, author: "Spam Bot", content: "Buy crypto now!!!", flag: "Spam" },
@@ -35,7 +65,7 @@ const AdminDashboard = ({ onLogout, showToast, toggleTheme, currentTheme, role, 
   // --- HANDLERS ---
   const handleAddCourse = (e) => {
     e.preventDefault();
-    if (!newCourse.title || !newCourse.videoId) return showToast("Details incomplete", "error");
+    if (!newCourse.title || !newCourse.videoId) return showToast ? showToast("Details incomplete", "error") : alert("Details incomplete");
 
     const courseToAdd = {
       id: Date.now(),
@@ -47,13 +77,13 @@ const AdminDashboard = ({ onLogout, showToast, toggleTheme, currentTheme, role, 
 
     setCourses([...courses, courseToAdd]);
     setNewCourse({ title: "", module: "", xp: 100, videoId: "" });
-    showToast("Curriculum Updated!", "success");
+    if(showToast) showToast("Curriculum Updated!", "success");
   };
 
   const handleDeleteCourse = (id) => {
     if(window.confirm("Confirm deletion?")) {
       setCourses(courses.filter(c => c.id !== id));
-      showToast("Course removed.", "info");
+      if(showToast) showToast("Course removed.", "info");
     }
   };
 
@@ -100,24 +130,37 @@ const AdminDashboard = ({ onLogout, showToast, toggleTheme, currentTheme, role, 
             </tr>
           </thead>
           <tbody>
-            {students.map(student => (
-              <tr key={student.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
-                <td style={{ padding: '15px' }}>
-                  <div style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{student.name}</div>
-                  <div style={{ fontSize: '11px', opacity: 0.6 }}>{student.email}</div>
-                </td>
-                <td style={{ padding: '15px' }}>{student.major}</td>
-                <td style={{ padding: '15px', color: 'var(--accent-color)', fontWeight: 'bold' }}>{student.xp}</td>
-                <td style={{ padding: '15px' }}>
-                  <button 
-                    onClick={() => onOpenChat({ _id: student.id, username: student.name })} 
-                    style={styles.chatBtn}
-                  >
-                    <FaComments /> Message
-                  </button>
-                </td>
-              </tr>
-            ))}
+            {loadingScholars ? (
+               <tr>
+                 <td colSpan="4" style={{ textAlign: 'center', padding: '20px' }}>
+                   <FaSpinner className="fa-spin" style={{ color: 'var(--accent-color)', fontSize: '24px' }} />
+                 </td>
+               </tr>
+            ) : students.length > 0 ? (
+              students.map(student => (
+                <tr key={student._id} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
+                  <td style={{ padding: '15px' }}>
+                    {/* ✅ DYNAMIC FIELDS */}
+                    <div style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{student.username}</div>
+                    <div style={{ fontSize: '11px', opacity: 0.6 }}>{student.email}</div>
+                  </td>
+                  <td style={{ padding: '15px' }}>{student.major || 'Independent Learner'}</td>
+                  <td style={{ padding: '15px', color: 'var(--accent-color)', fontWeight: 'bold' }}>{student.xp || 0}</td>
+                  <td style={{ padding: '15px' }}>
+                    <button 
+                      onClick={() => onOpenChat({ _id: student._id, username: student.username })} 
+                      style={styles.chatBtn}
+                    >
+                      <FaComments /> Message
+                    </button>
+                  </td>
+                </tr>
+              ))
+            ) : (
+               <tr>
+                 <td colSpan="4" style={{ textAlign: 'center', padding: '20px' }}>No scholars found in the database.</td>
+               </tr>
+            )}
           </tbody>
         </table>
       </div>

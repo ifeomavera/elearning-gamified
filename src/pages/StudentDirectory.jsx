@@ -18,7 +18,7 @@ const StudentDirectory = ({ currentUsername, onNavigate }) => {
     setLoading(true);
     try {
       const res = await axios.get(`${apiUrl}/api/users/search/${val}`);
-      setResults(res.data.filter(u => u.username !== currentUsername)); // Don't find yourself
+      setResults(res.data.filter(u => u.username !== currentUsername)); 
     } catch (err) {
       console.error("Search failed", err);
     } finally {
@@ -32,7 +32,6 @@ const StudentDirectory = ({ currentUsername, onNavigate }) => {
       await axios.put(`${apiUrl}/api/users/${targetUsername}/request`, { 
         currentUsername 
       });
-      // Update local state to show "Sent"
       setResults(results.map(u => u.username === targetUsername ? { ...u, sent: true } : u));
     } catch (err) {
       alert(err.response?.data || "Failed to send request");
@@ -71,11 +70,19 @@ const StudentDirectory = ({ currentUsername, onNavigate }) => {
           {results.map(user => (
             <div key={user.username} className="glass-card" style={{ padding: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--card-border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <div style={{ fontSize: '24px', background: 'var(--card-border)', padding: '8px', borderRadius: '10px' }}>👨‍💻</div>
+                <div style={{ fontSize: '24px', background: 'var(--card-border)', padding: '8px', borderRadius: '10px' }}>{user.avatar || "👨‍💻"}</div>
+                
+                {/* ✅ UPDATED: Dynamic Email and Major */}
                 <div>
                   <h3 style={{ margin: 0, fontSize: '16px', color: 'var(--text-primary)' }}>{user.username}</h3>
-                  <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)' }}>Level {user.level} Software Engineer</p>
+                  <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    Level {user.level || 1} • {user.major || 'Scholar'}
+                  </p>
+                  <p style={{ margin: 0, fontSize: '11px', color: 'var(--accent-color)', marginTop: '2px', opacity: 0.8 }}>
+                    {user.email}
+                  </p>
                 </div>
+
               </div>
               <button 
                 onClick={() => sendRequest(user.username)}

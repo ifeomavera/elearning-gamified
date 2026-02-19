@@ -21,27 +21,31 @@ const Login = ({ onLogin, onNavigate }) => {
         password
       });
 
-      // ✅ 1. Get the actual role string from the database (force to lowercase just in case)
-      const userRoleFromDB = res.data.role ? String(res.data.role).toLowerCase() : 'scholar'; 
+      // ✅ 1. IDENTITY EXTRACTION: Surgical fix for the 'undefined' ID issue
+      const userData = res.data.user || res.data;
+      const userId = userData._id || userData.id || res.data.userId; 
+      const userRoleFromDB = userData.role ? String(userData.role).toLowerCase() : 'scholar'; 
+
+      if (!userId) {
+        console.error("Login Success but no ID found in response:", res.data);
+        setError("Account sync error. Please try again.");
+        return;
+      }
 
       // ✅ 2. Dev Bypass Logic
       const devUsers = ['KAY FLOCK', 'Paul', 'Admin'];
-      const isDev = devUsers.includes(res.data.username);
+      const isDev = devUsers.includes(userData.username);
 
       if (isAdminLogin) {
-        // Block entry if the DB says they aren't admin/instructor AND they aren't a dev user
         if (userRoleFromDB !== 'admin' && userRoleFromDB !== 'instructor' && !isDev) {
           setError("This account is not authorized for the Instructor Portal.");
           return;
         }
       }
 
-      // ✅ 3. THE HANDSHAKE: Ensure a solid role string is passed
-      // If a dev logs in via the Admin portal, force the 'admin' role. 
-      // Otherwise, use the role from the DB.
+      // ✅ 3. THE HANDSHAKE: Passing the verified userId to App.jsx
       const finalRole = (isAdminLogin && isDev) ? 'admin' : userRoleFromDB;
-      
-      onLogin(res.data.username, finalRole, res.data._id);
+      onLogin(userData.username, finalRole, userId);
 
     } catch (err) {
       console.error("Login Failed:", err);

@@ -10,6 +10,7 @@ import {
   FaCompass, FaBookOpen, FaPlus, FaFire, FaUniversity, FaFlagCheckered, FaCommentDots
 } from 'react-icons/fa';
 import axios from 'axios';
+import { toast } from 'react-hot-toast';
 
 const ALL_COURSES = [
   { id: 1, title: "Intro to Software Engineering", module: "Module 1", xp: 50, videoId: "zOjov-2OZ0E" },
@@ -26,7 +27,6 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
   const [activities, setActivities] = useState([]); 
   const [courses, setCourses] = useState([]);
 
-  // DYNAMIC SCHOLAR DATA
   const [academicLevel, setAcademicLevel] = useState("Lvl 100"); 
   const [major, setMajor] = useState("Scholar");
 
@@ -224,7 +224,18 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
               <div style={{ display: 'flex', flexDirection: 'column' }}>
                 {userData?.friends?.length > 0 ? (
                   userData.friends.map(friend => (
-                    <div key={friend._id || friend.username} onClick={() => onOpenChat(friend)} className="messenger-item">
+                    <div 
+                      key={friend._id || friend.username} 
+                      onClick={() => {
+                        // ✅ SAFETY CHECK: Ensures friend identity data is valid before opening chat
+                        if (friend && (friend._id || friend.id)) {
+                           onOpenChat(friend);
+                        } else {
+                           toast.error("Peer identity data incomplete.");
+                        }
+                      }} 
+                      className="messenger-item"
+                    >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                         <span style={{ fontSize: '20px' }}>👨‍💻</span>
                         <div>
@@ -247,10 +258,8 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
         </div>
       </div>
 
-      {/* Sidebar Overlay */}
       <div onClick={() => setIsMenuOpen(false)} style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)', zIndex: 9998, opacity: isMenuOpen ? 1 : 0, pointerEvents: isMenuOpen ? 'all' : 'none', transition: 'opacity 0.4s ease' }} />
       
-      {/* Sidebar Content */}
       <div className="vici-sidebar sidebar-mobile" style={{ position: 'fixed', top: 0, right: isMenuOpen ? '0' : '-100%', width: '320px', height: '100%', zIndex: 9999, transition: 'all 0.4s cubic-bezier(0.16, 1, 0.3, 1)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '20px', display: 'flex', justifyContent: 'flex-end' }}>
           <button onClick={() => setIsMenuOpen(false)} style={{ background: 'transparent', border: '1px solid var(--card-border)', color: 'var(--text-primary)', width: '40px', height: '40px', borderRadius: '50%', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><FaTimes size={18} /></button>
@@ -266,17 +275,11 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
           <button onClick={() => { onNavigate('profile'); setIsMenuOpen(false); }} className="vici-menu-item"><FaUser opacity={0.6} /> Profile Settings</button>
           <button onClick={() => { onNavigate('course-catalog'); setIsMenuOpen(false); }} className="vici-menu-item"><FaBookOpen opacity={0.6} /> Course Catalog</button>
           <button onClick={() => { onNavigate('forum'); setIsMenuOpen(false); }} className="vici-menu-item"><FaUsers opacity={0.6} /> Community</button>
-          
-          {/* ✅ NEW: Project Credits Link */}
-          <button onClick={() => { onNavigate('credits'); setIsMenuOpen(false); }} className="vici-menu-item">
-            <FaUniversity opacity={0.6} /> Project Credits
-          </button>
-
+          <button onClick={() => { onNavigate('credits'); setIsMenuOpen(false); }} className="vici-menu-item"><FaUniversity opacity={0.6} /> Project Credits</button>
           <button onClick={toggleTheme} className="vici-menu-item">
             {currentTheme === 'light' ? <FaMoon opacity={0.6} /> : <FaSun color="var(--accent-color)" opacity={0.8} />}
             {currentTheme === 'light' ? "Dark Mode" : "Light Mode"}
           </button>
-          
           <button onClick={onLogout} className="vici-menu-item vici-sign-out"><FaSignOutAlt /> Terminate Session</button>
         </div>
       </div>
