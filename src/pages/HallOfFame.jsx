@@ -7,12 +7,14 @@ const HallOfFame = ({ username, onNavigate }) => {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('global');
 
+  // Uses your Render URL from the environment variables, or defaults to local if testing
   const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
   useEffect(() => {
     const fetchRankings = async () => {
       setLoading(true);
       try {
+        // This matches the Endpoint 11 we just added to your backend
         const endpoint = viewMode === 'global' ? 'leaderboard' : `${username}/friends-leaderboard`;
         const res = await axios.get(`${apiUrl}/api/users/${endpoint}`);
         setUsers(res.data);
@@ -38,7 +40,11 @@ const HallOfFame = ({ username, onNavigate }) => {
         
         {/* Navigation Header */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px', marginBottom: '30px' }}>
-          <button onClick={() => onNavigate('dashboard')} className="glass-card" style={{ padding: '10px', borderRadius: '50%', cursor: 'pointer', color: 'var(--text-primary)', border: '1px solid var(--card-border)' }}>
+          <button 
+            onClick={() => onNavigate('dashboard')} 
+            className="glass-card" 
+            style={{ padding: '10px', borderRadius: '50%', cursor: 'pointer', color: 'var(--text-primary)', border: '1px solid var(--card-border)' }}
+          >
             <FaArrowLeft />
           </button>
           <div>
@@ -96,7 +102,7 @@ const HallOfFame = ({ username, onNavigate }) => {
                     <div>
                       <h3 style={{ margin: 0, fontSize: '18px', color: 'var(--text-primary)', textTransform: 'uppercase' }}>{u.username}</h3>
                       <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)' }}>
-                        Level {u.level} • {u.badges?.length || 0} Badges
+                        Level {u.level || 1} • {u.badges?.length || 0} Badges
                       </p>
                     </div>
                   </div>
@@ -107,7 +113,7 @@ const HallOfFame = ({ username, onNavigate }) => {
                 </div>
               );
             }) : (
-              <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>You haven't added any friends to your circle yet!</p>
+              <p style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>No scholars found in this circle yet!</p>
             )}
           </div>
         )}
