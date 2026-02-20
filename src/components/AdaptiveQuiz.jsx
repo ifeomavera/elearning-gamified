@@ -22,8 +22,7 @@ const AdaptiveQuiz = ({ lessonId, onComplete }) => {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
         const res = await axios.get(`${apiUrl}/api/quizzes/${lessonId}`);
         
-        // ✅ THE SMART FILTER: Only keep 'fill' questions, or 'single' choice questions 
-        // that actually have a designated correct answer to avoid broken matching formats.
+        // Filter to ensure questions have valid answer formats
         const validQuestions = res.data.questions.filter(q => {
           if (q.type === 'fill') return true;
           if (q.options) {
@@ -89,11 +88,12 @@ const AdaptiveQuiz = ({ lessonId, onComplete }) => {
       );
       
       if (selectedOpt) {
-        // ✅ Ironclad evaluation check
+        // ✅ REFINED EVALUATION: Checks Boolean flag AND String match to prevent false negatives
+        const isTextMatch = selectedAnswer.toLowerCase().trim() === (currentQuestion.correctAnswer || currentQuestion.answer || '').toLowerCase().trim();
+
         correct = selectedOpt.isCorrect === true || 
                   String(selectedOpt.isCorrect).toLowerCase() === 'true' ||
-                  selectedAnswer === currentQuestion.correctAnswer || 
-                  selectedAnswer === currentQuestion.answer;
+                  isTextMatch;
       }
     } 
     else if (currentQuestion.type === 'fill') {
@@ -125,10 +125,9 @@ const AdaptiveQuiz = ({ lessonId, onComplete }) => {
   if (!currentQuestion) return null;
 
   return (
-    <div className="glass-card" style={{ padding: '30px', maxWidth: '600px', margin: '0 auto' }}>
+    <div className="glass-card" style={{ padding: '30px', maxWidth: '600px', margin: '0 auto', borderRadius: '20px' }}>
       
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', color: 'var(--text-secondary)' }}>
-        {/* ✅ CLEAN HEADER: No emojis, no fire. Just the professional Brain icon and text. */}
         <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', fontSize: '16px' }}>
           <FaBrain /> Level {currentDifficulty}
         </span>
@@ -144,7 +143,7 @@ const AdaptiveQuiz = ({ lessonId, onComplete }) => {
         </span>
       </div>
 
-      <h3 style={{ color: 'var(--text-primary)', marginBottom: '20px' }}>{currentQuestion.text}</h3>
+      <h3 style={{ color: 'var(--text-primary)', marginBottom: '20px', lineHeight: '1.4' }}>{currentQuestion.text}</h3>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
         
@@ -156,18 +155,18 @@ const AdaptiveQuiz = ({ lessonId, onComplete }) => {
             <label key={idx} style={{ 
               padding: '15px', 
               background: selectedAnswer === optValue ? 'var(--accent-color)' : 'rgba(255,255,255,0.05)', 
-              borderRadius: '8px', cursor: 'pointer', color: 'var(--text-primary)',
-              display: 'flex', alignItems: 'center'
+              borderRadius: '12px', cursor: 'pointer', color: selectedAnswer === optValue ? '#fff' : 'var(--text-primary)',
+              display: 'flex', alignItems: 'center', border: '1px solid var(--card-border)', transition: 'all 0.2s ease'
             }}>
               <input 
                 type="radio" 
                 name="quizOption" 
                 value={optValue} 
                 onChange={(e) => { setSelectedAnswer(e.target.value); setIsWrong(false); }} 
-                style={{ marginRight: '10px' }} 
+                style={{ marginRight: '12px' }} 
                 disabled={showExplanation} 
               />
-              <span style={{ lineHeight: '1.4' }}>{displayText}</span>
+              <span style={{ fontSize: '15px', fontWeight: '500' }}>{displayText}</span>
             </label>
           );
         })}
@@ -186,10 +185,10 @@ const AdaptiveQuiz = ({ lessonId, onComplete }) => {
             disabled={showExplanation}
             style={{ 
               padding: '15px', 
-              borderRadius: '8px', 
-              border: '2px solid var(--card-border, #ccc)', 
-              background: 'var(--bg-body, #fff)', 
-              color: 'var(--text-primary, #333)', 
+              borderRadius: '12px', 
+              border: '2px solid var(--card-border)', 
+              background: 'var(--bg-body)', 
+              color: 'var(--text-primary)', 
               width: '100%',
               fontSize: '16px',
               outline: 'none'
@@ -199,28 +198,37 @@ const AdaptiveQuiz = ({ lessonId, onComplete }) => {
       </div>
 
       {isWrong && (
-        <div style={{ color: '#ff7675', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500' }}>
+        <div style={{ color: '#ff7675', marginBottom: '15px', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '500', animation: 'shake 0.5s ease-in-out' }}>
           <FaTimesCircle /> Incorrect. The adaptive engine has adjusted. Try again.
         </div>
       )}
 
       {showExplanation ? (
-        <div style={{ background: 'rgba(0, 184, 148, 0.1)', borderLeft: '4px solid #00b894', padding: '15px', marginBottom: '20px', color: 'var(--text-primary)', borderRadius: '8px' }}>
+        <div style={{ background: 'rgba(0, 184, 148, 0.1)', borderLeft: '4px solid #00b894', padding: '15px', marginBottom: '20px', borderRadius: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#00b894', fontWeight: 'bold', marginBottom: '10px' }}>
             <FaCheckCircle /> Correct!
           </div>
-          <p style={{ margin: 0, fontSize: '15px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>{currentQuestion.explanation}</p>
+          <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>{currentQuestion.explanation}</p>
         </div>
       ) : null}
 
       {!showExplanation ? (
-        <button onClick={handleSubmit} className="btn-primary" style={{ width: '100%', padding: '15px', borderRadius: '8px', border: 'none', cursor: 'pointer', background: 'var(--accent-color)', color: '#fff', fontWeight: 'bold', fontSize: '16px' }}>
+        <button 
+          onClick={handleSubmit} 
+          disabled={!selectedAnswer}
+          style={{ 
+            width: '100%', padding: '15px', borderRadius: '12px', border: 'none', 
+            cursor: selectedAnswer ? 'pointer' : 'not-allowed', 
+            background: selectedAnswer ? 'var(--accent-color)' : 'var(--card-border)', 
+            color: '#fff', fontWeight: 'bold', fontSize: '16px', transition: 'all 0.3s' 
+          }}
+        >
           Check Answer
         </button>
       ) : (
-        <button onClick={pickNextQuestion} className="btn-secondary" style={{ 
-            width: '100%', padding: '15px', borderRadius: '8px', border: 'none', cursor: 'pointer', 
-            background: 'var(--accent-color)', color: '#fff', fontWeight: 'bold', fontSize: '16px',
+        <button onClick={pickNextQuestion} style={{ 
+            width: '100%', padding: '15px', borderRadius: '12px', border: 'none', cursor: 'pointer', 
+            background: '#00b894', color: '#fff', fontWeight: 'bold', fontSize: '16px',
             display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '10px'
         }}>
           Next Question <FaArrowRight />

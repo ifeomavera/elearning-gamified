@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { FaArrowLeft, FaForward } from 'react-icons/fa';
 import confetti from 'canvas-confetti';
-import AdaptiveQuiz from '../components/AdaptiveQuiz'; // ✅ 1. IMPORT THE AI ENGINE
+import AdaptiveQuiz from '../components/AdaptiveQuiz'; // ✅ AI ENGINE INTEGRATED
 
 const LessonView = ({ lesson, onComplete, onExit }) => {
   const [step, setStep] = useState('video'); 
   const [finalXP, setFinalXP] = useState(0); 
 
-  // ✅ 2. HANDLE AI QUIZ COMPLETION
+  // ✅ HANDLE AI QUIZ COMPLETION
   const handleQuizComplete = (result) => {
     // result contains { score, total } from the AdaptiveQuiz component
     const earnedXP = result.score; // XP is now dynamically based on adaptive difficulty!
@@ -15,13 +15,22 @@ const LessonView = ({ lesson, onComplete, onExit }) => {
     
     // Trigger the victory screen
     setStep('result');
-    confetti({ particleCount: 150, spread: 100 });
+    confetti({ 
+      particleCount: 150, 
+      spread: 100,
+      colors: ['#6c5ce7', '#a29bfe', '#00b894'] // Custom brand colors
+    });
     
     // Fire the completion event back to App.jsx after a brief delay
+    // This triggers the axios.put sync we fixed in your App.jsx earlier
     setTimeout(() => onComplete(earnedXP), 2500); 
   };
 
-  if (!lesson) return <div style={{ padding: '20px', color: 'white' }}>Loading module...</div>;
+  if (!lesson) return (
+    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-body)' }}>
+      <div className="loader">Consulting Syllabus...</div>
+    </div>
+  );
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-body)', display: 'flex', flexDirection: 'column', padding: '15px' }}>
@@ -33,22 +42,22 @@ const LessonView = ({ lesson, onComplete, onExit }) => {
             padding: '10px 18px', cursor: 'pointer', color: 'var(--text-secondary)', display: 'flex', 
             alignItems: 'center', gap: '8px', zIndex: 10, fontSize: '14px', borderRadius: '12px' 
         }}>
-          <FaArrowLeft /> Back to Modules {/* ✅ TEXT CHANGED HERE */}
+          <FaArrowLeft /> Back to Modules
         </button>
         <h2 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '20px', fontWeight: 'bold' }}>
             {lesson.module}: {lesson.title}
         </h2>
       </div>
 
-      <div className="glass-card" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '15px', position: 'relative' }}>
+      <div className="glass-card" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '15px', position: 'relative', borderRadius: '24px' }}>
         
         {/* --- STEP 1: VIDEO LESSON --- */}
         {step === 'video' && (
           <div style={{ width: '100%', maxWidth: '800px', textAlign: 'center' }}>
             <div style={{ 
                 position: 'relative', width: '100%', paddingTop: '56.25%', 
-                background: '#000', borderRadius: '16px', overflow: 'hidden', 
-                marginBottom: '30px', boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+                background: '#000', borderRadius: '20px', overflow: 'hidden', 
+                marginBottom: '30px', boxShadow: '0 20px 50px rgba(0,0,0,0.4)',
                 border: '1px solid var(--card-border)'
             }}>
               <iframe 
@@ -61,11 +70,18 @@ const LessonView = ({ lesson, onComplete, onExit }) => {
             </div>
 
             <button onClick={() => setStep('quiz')} style={{ 
-                width: '100%', padding: '18px', fontSize: '18px', borderRadius: '12px', 
+                width: '100%', padding: '18px', fontSize: '18px', borderRadius: '15px', 
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
                 background: 'var(--accent-color)', color: 'white', border: 'none', 
-                fontWeight: 'bold', cursor: 'pointer', transition: 'transform 0.2s ease'
-            }} onMouseOver={e => e.currentTarget.style.transform = 'scale(1.02)'} onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}>
+                fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s ease',
+                boxShadow: '0 10px 20px rgba(108, 92, 231, 0.3)'
+            }} onMouseOver={e => {
+              e.currentTarget.style.transform = 'translateY(-3px)';
+              e.currentTarget.style.boxShadow = '0 15px 30px rgba(108, 92, 231, 0.4)';
+            }} onMouseOut={e => {
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = '0 10px 20px rgba(108, 92, 231, 0.3)';
+            }}>
               Commence Knowledge Check <FaForward />
             </button>
           </div>
@@ -74,18 +90,28 @@ const LessonView = ({ lesson, onComplete, onExit }) => {
         {/* --- STEP 2: THE AI ADAPTIVE QUIZ --- */}
         {step === 'quiz' && (
           <div style={{ width: '100%', maxWidth: '800px' }}>
-            {/* Formatting the ID to match how we saved it in the database */}
+            {/* Formatted lessonId provides context to the AI engine for question generation */}
             <AdaptiveQuiz lessonId={`lesson-00${lesson.id}`} onComplete={handleQuizComplete} />
           </div>
         )}
 
         {/* --- STEP 3: VICTORY SCREEN --- */}
         {step === 'result' && (
-          <div style={{ textAlign: 'center' }}>
-             <div style={{ fontSize: '80px', marginBottom: '20px' }}>🏆</div>
-             <h1 style={{ color: 'var(--text-primary)' }}>Module Complete!</h1>
-             <p style={{ color: 'var(--text-secondary)' }}>Syncing your progress to the servers...</p>
-             <div style={{ marginTop: '30px', color: '#2ecc71', fontWeight: '900', fontSize: '28px' }}>
+          <div style={{ textAlign: 'center', animation: 'fadeIn 1s ease-out' }}>
+             <div style={{ fontSize: '100px', marginBottom: '20px' }}>🏆</div>
+             <h1 style={{ color: 'var(--text-primary)', fontSize: '32px', marginBottom: '10px' }}>Module Complete!</h1>
+             <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>Syncing your academic record to the VICI cloud...</p>
+             <div style={{ 
+               marginTop: '30px', 
+               padding: '20px 40px', 
+               borderRadius: '20px',
+               background: 'rgba(46, 204, 113, 0.1)',
+               border: '2px solid #2ecc71',
+               color: '#2ecc71', 
+               fontWeight: '900', 
+               fontSize: '32px',
+               display: 'inline-block'
+             }}>
                 +{finalXP} XP Earned
              </div>
           </div>
