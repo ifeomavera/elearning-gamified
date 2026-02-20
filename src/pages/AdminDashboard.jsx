@@ -2,15 +2,16 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { 
   FaPlus, FaTrash, FaUsers, FaBook, FaComments, 
-  FaSignOutAlt, FaChalkboardTeacher, FaSun, FaMoon, FaUserShield, FaSpinner 
+  FaSignOutAlt, FaChalkboardTeacher, FaSun, FaMoon, FaUserShield, FaSpinner,
+  FaMagic, FaBrain // ✅ Added AI Icons
 } from 'react-icons/fa';
 
 const AdminDashboard = ({ onLogout, showToast, toggleTheme, currentTheme, role, onOpenChat }) => {
-  // --- ROLE LOGIC ---
   const isSuperAdmin = role === 'admin';
   const dashboardTitle = isSuperAdmin ? "System Administrator" : "Academic Instructor";
 
   const [activeTab, setActiveTab] = useState('courses');
+  const [generatingId, setGeneratingId] = useState(null); // ✅ Tracks which quiz is being generated
   
   const [courses, setCourses] = useState(() => {
     const saved = localStorage.getItem('appCourses');
@@ -23,29 +24,21 @@ const AdminDashboard = ({ onLogout, showToast, toggleTheme, currentTheme, role, 
     localStorage.setItem('appCourses', JSON.stringify(courses));
   }, [courses]);
 
-  // --- DYNAMIC SCHOLAR DATA ---
   const [students, setStudents] = useState([]);
   const [loadingScholars, setLoadingScholars] = useState(false);
 
-  // ✅ NEW: Fetch real scholars from the database
   useEffect(() => {
     const fetchScholars = async () => {
-      if (activeTab !== 'students') return; // Only fetch when viewing the tab
-      
+      if (activeTab !== 'students') return;
       setLoadingScholars(true);
       try {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-        // Assuming you have a route to get all users. If not, use your search route with an empty or generic query
         const res = await axios.get(`${apiUrl}/api/users`); 
-        
-        // Filter out the current admin so you don't message yourself
         const currentUserId = localStorage.getItem('userId');
         const activeScholars = res.data.filter(u => u._id !== currentUserId);
-        
         setStudents(activeScholars);
       } catch (err) {
         console.error("Failed to load scholars:", err);
-        // Fallback dummy data if the API fails during testing
         setStudents([
           { _id: "65c8a1", username: "Masade Paul", email: "paul@babcock.edu.ng", major: "Software Engineering", xp: 2350 },
           { _id: "65c8b2", username: "Ezeka Ifeoma", email: "ifeoma@babcock.edu.ng", major: "Computer Science", xp: 1850 },
@@ -54,15 +47,34 @@ const AdminDashboard = ({ onLogout, showToast, toggleTheme, currentTheme, role, 
         setLoadingScholars(false);
       }
     };
-
     fetchScholars();
   }, [activeTab]);
 
-  const [posts] = useState([
-    { id: 1, author: "Spam Bot", content: "Buy crypto now!!!", flag: "Spam" },
-  ]);
+  const [posts] = useState([{ id: 1, author: "Spam Bot", content: "Buy crypto now!!!", flag: "Spam" }]);
 
-  // --- HANDLERS ---
+  // --- AI GENERATION HANDLER ---
+  const handleGenerateAIQuiz = async (course) => {
+    setGeneratingId(course.id);
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      
+      // We use the course title/module as context if "content" isn't explicitly saved yet
+      const lessonContent = `${course.title} within ${course.module}. This lesson covers foundational concepts and practical applications.`;
+
+      await axios.post(`${apiUrl}/api/quizzes/generate`, {
+        lessonId: `lesson-00${course.id}`,
+        lessonContent: lessonContent
+      });
+
+      if (showToast) showToast(`AI Quiz deployed for ${course.title}!`, "success");
+    } catch (err) {
+      console.error("AI Generation Failed:", err);
+      if (showToast) showToast("AI brain offline. Check console.", "error");
+    } finally {
+      setGeneratingId(null);
+    }
+  };
+
   const handleAddCourse = (e) => {
     e.preventDefault();
     if (!newCourse.title || !newCourse.videoId) return showToast ? showToast("Details incomplete", "error") : alert("Details incomplete");
@@ -87,7 +99,6 @@ const AdminDashboard = ({ onLogout, showToast, toggleTheme, currentTheme, role, 
     }
   };
 
-  // --- RENDERERS ---
   const renderCourses = () => (
     <div className="animate-fade">
       <h2 style={{ color: 'var(--text-primary)', marginBottom: '20px' }}>Curriculum Management</h2>
@@ -109,7 +120,23 @@ const AdminDashboard = ({ onLogout, showToast, toggleTheme, currentTheme, role, 
               <div style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{course.title}</div>
               <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{course.module} • {course.xp} XP</div>
             </div>
-            <button onClick={() => handleDeleteCourse(course.id)} style={styles.deleteBtn}><FaTrash /></button>
+            
+            <div style={{ display: 'flex', gap: '10px' }}>
+              {/* ✅ NEW: GENERATE AI QUIZ BUTTON */}
+              <button 
+                onClick={() => handleGenerateAIQuiz(course)} 
+                disabled={generatingId === course.id}
+                style={{
+                  ...styles.aiBtn,
+                  opacity: generatingId && generatingId !== course.id ? 0.5 : 1
+                }}
+              >
+                {generatingId === course.id ? <FaBrain className="fa-spin" /> : <FaMagic />}
+                {generatingId === course.id ? "Analyzing..." : "AI Quiz"}
+              </button>
+
+              <button onClick={() => handleDeleteCourse(course.id)} style={styles.deleteBtn}><FaTrash /></button>
+            </div>
           </div>
         ))}
       </div>
@@ -140,7 +167,6 @@ const AdminDashboard = ({ onLogout, showToast, toggleTheme, currentTheme, role, 
               students.map(student => (
                 <tr key={student._id} style={{ borderBottom: '1px solid rgba(255,255,255,0.02)' }}>
                   <td style={{ padding: '15px' }}>
-                    {/* ✅ DYNAMIC FIELDS */}
                     <div style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{student.username}</div>
                     <div style={{ fontSize: '11px', opacity: 0.6 }}>{student.email}</div>
                   </td>
@@ -220,7 +246,9 @@ const styles = {
   activeNav: { display: 'flex', alignItems: 'center', gap: '12px', width: '100%', padding: '12px 15px', background: 'var(--accent-color)', borderRadius: '10px', border: 'none', color: 'white', fontWeight: 'bold' },
   actionBtn: { display: 'flex', alignItems: 'center', gap: '10px', justifyContent: 'center', padding: '12px', borderRadius: '10px', cursor: 'pointer', fontWeight: 'bold' },
   chatBtn: { background: 'rgba(108, 92, 231, 0.1)', border: '1px solid var(--accent-color)', color: 'var(--accent-color)', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' },
-  deleteBtn: { background: 'transparent', border: '1px solid #ff7675', padding: '8px', borderRadius: '5px', color: '#ff7675', cursor: 'pointer' }
+  deleteBtn: { background: 'transparent', border: '1px solid #ff7675', padding: '8px', borderRadius: '5px', color: '#ff7675', cursor: 'pointer' },
+  // ✅ ADDED AI BUTTON STYLE
+  aiBtn: { background: 'var(--accent-color)', border: 'none', color: 'white', padding: '8px 15px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', transition: 'all 0.2s' }
 };
 
 export default AdminDashboard;
