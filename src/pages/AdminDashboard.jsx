@@ -15,11 +15,10 @@ const AdminDashboard = ({ onLogout, toggleTheme, currentTheme, role, onOpenChat 
   const [generatingId, setGeneratingId] = useState(null);
   const [editingStudent, setEditingStudent] = useState(null);
   
-  // Curriculum State (Now dynamically fetched)
+  // Curriculum State
   const [courses, setCourses] = useState([]);
   const [newCourse, setNewCourse] = useState({ title: "", module: "", xp: 100, videoId: "" });
 
-  // Fetch Courses from DB
   useEffect(() => {
     const fetchCourses = async () => {
       try {
@@ -46,7 +45,6 @@ const AdminDashboard = ({ onLogout, toggleTheme, currentTheme, role, onOpenChat 
       const activeScholars = res.data.filter(u => u._id !== currentUserId);
       setStudents(activeScholars);
     } catch (err) {
-      console.error("Failed to load scholars:", err);
       toast.error("Cloud sync failed. Displaying cached records.");
     } finally {
       setLoadingScholars(false);
@@ -57,14 +55,29 @@ const AdminDashboard = ({ onLogout, toggleTheme, currentTheme, role, onOpenChat 
     if (activeTab === 'students') fetchScholars();
   }, [activeTab]);
 
-  // Forum Mock State
-  const [posts] = useState([
-    { id: 1, author: "Spam Bot", content: "Buy crypto now!!!", flag: "Spam" },
-    { id: 2, author: "TrollMaster", content: "This course is too easy lol", flag: "Behavior" }
-  ]);
+  // ✅ REAL FORUM STATE
+  const [posts, setPosts] = useState([]);
+  const [loadingPosts, setLoadingPosts] = useState(false);
+
+  const fetchPosts = async () => {
+    setLoadingPosts(true);
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const res = await axios.get(`${apiUrl}/api/posts`);
+      setPosts(res.data);
+    } catch (err) {
+      toast.error("Failed to fetch forum data.");
+    } finally {
+      setLoadingPosts(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'forum') fetchPosts();
+  }, [activeTab]);
+
 
   // --- ADMIN MODERATION HANDLERS ---
-  
   const handleToggleBan = async (username) => {
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
@@ -88,20 +101,30 @@ const AdminDashboard = ({ onLogout, toggleTheme, currentTheme, role, onOpenChat 
     }
   };
 
-  // --- COURSE API HANDLERS ---
+  // ✅ FORUM MODERATION HANDLER
+  const handleNeutralizePost = async (id) => {
+    if(window.confirm("Permanently neutralize this post?")) {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        await axios.delete(`${apiUrl}/api/posts/${id}`);
+        setPosts(posts.filter(p => p._id !== id));
+        toast.success("Content neutralized.");
+      } catch (err) {
+        toast.error("Failed to remove content.");
+      }
+    }
+  };
 
+  // --- COURSE API HANDLERS ---
   const handleGenerateAIQuiz = async (course) => {
     setGeneratingId(course._id);
     const toastId = toast.loading(`Generating AI Logic for ${course.title}...`);
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const lessonContent = `${course.title} within ${course.module}. Focus on core principles and adaptive assessment.`;
-
       await axios.post(`${apiUrl}/api/quizzes/generate`, {
         lessonId: `lesson-00${course._id}`,
-        lessonContent: lessonContent
+        lessonContent: `${course.title} within ${course.module}. Focus on core principles and adaptive assessment.`
       });
-
       toast.success("AI Brain specialized for this module!", { id: toastId });
     } catch (err) {
       toast.error("AI engine temporarily offline.", { id: toastId });
@@ -122,7 +145,6 @@ const AdminDashboard = ({ onLogout, toggleTheme, currentTheme, role, onOpenChat 
         xp: parseInt(newCourse.xp),
         videoId: newCourse.videoId,
       });
-
       setCourses([...courses, res.data]);
       setNewCourse({ title: "", module: "", xp: 100, videoId: "" });
       toast.success("Curriculum Matrix Updated!");
@@ -171,11 +193,7 @@ const AdminDashboard = ({ onLogout, toggleTheme, currentTheme, role, onOpenChat 
             </div>
             
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button 
-                onClick={() => handleGenerateAIQuiz(course)} 
-                disabled={generatingId === course._id} 
-                style={styles.aiBtn}
-              >
+              <button onClick={() => handleGenerateAIQuiz(course)} disabled={generatingId === course._id} style={styles.aiBtn}>
                 {generatingId === course._id ? <FaBrain className="fa-spin" /> : <FaMagic />}
                 {generatingId === course._id ? "Analyzing..." : "AI Quiz"}
               </button>
@@ -239,11 +257,7 @@ const AdminDashboard = ({ onLogout, toggleTheme, currentTheme, role, onOpenChat 
                       <>
                         <button onClick={() => setEditingStudent(s._id)} style={styles.actionBtnIcon} title="Edit Record"><FaEdit /></button>
                         <button onClick={() => onOpenChat(s)} style={styles.actionBtnIcon} title="Chat"><FaComments /></button>
-                        <button 
-                          onClick={() => handleToggleBan(s.username)} 
-                          style={{ ...styles.actionBtnIcon, color: s.isBanned ? '#00b894' : '#ff7675' }}
-                          title={s.isBanned ? "Reactivate" : "Restrict"}
-                        >
+                        <button onClick={() => handleToggleBan(s.username)} style={{ ...styles.actionBtnIcon, color: s.isBanned ? '#00b894' : '#ff7675' }} title={s.isBanned ? "Reactivate" : "Restrict"}>
                           {s.isBanned ? <FaCheck /> : <FaBan />}
                         </button>
                       </>
@@ -262,18 +276,29 @@ const AdminDashboard = ({ onLogout, toggleTheme, currentTheme, role, onOpenChat 
     <div className="animate-fade">
       <h2 style={{ color: 'var(--text-primary)' }}>Security Center (Forum Control)</h2>
       <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '20px' }}>Review and neutralize flagged community content.</p>
-      {posts.map(p => (
-        <div key={p.id} className="glass-card" style={{ padding: '20px', marginTop: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderLeft: '4px solid #ff7675' }}>
-          <div>
-            <span style={{ color: '#ff7675', fontWeight: 'bold', fontSize: '10px', textTransform: 'uppercase' }}>FLAGGED: {p.flag}</span>
-            <div style={{ fontWeight: 'bold', color: 'var(--text-primary)', marginTop: '5px' }}>{p.author}</div>
-            <p style={{ margin: '5px 0 0 0', color: 'var(--text-secondary)' }}>"{p.content}"</p>
+      
+      {loadingPosts ? (
+        <div style={{ textAlign: 'center', padding: '40px' }}><FaSpinner className="fa-spin" size={30} color="var(--accent-color)" /></div>
+      ) : posts.length > 0 ? (
+        posts.map(p => (
+          <div key={p._id} className="glass-card" style={{ padding: '20px', marginTop: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderLeft: '4px solid #ff7675' }}>
+            <div>
+              <div style={{ fontWeight: 'bold', color: 'var(--text-primary)', marginTop: '5px' }}>{p.username}</div>
+              <h4 style={{ margin: '5px 0', color: 'var(--accent-color)' }}>{p.title}</h4>
+              <p style={{ margin: '5px 0 0 0', color: 'var(--text-secondary)' }}>"{p.content}"</p>
+            </div>
+            <button 
+              onClick={() => handleNeutralizePost(p._id)}
+              className="btn-primary" 
+              style={{ background: '#ff7675', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+            >
+              Neutralize Post
+            </button>
           </div>
-          <button className="btn-primary" style={{ background: '#ff7675', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}>
-            Neutralize Post
-          </button>
-        </div>
-      ))}
+        ))
+      ) : (
+        <p style={{ color: 'var(--text-secondary)' }}>No active forum posts.</p>
+      )}
     </div>
   );
 

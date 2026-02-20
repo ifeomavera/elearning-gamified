@@ -11,7 +11,10 @@ const AdaptiveQuiz = ({ lessonId, onComplete }) => {
   const [currentDifficulty, setCurrentDifficulty] = useState(1); 
   const [consecutiveCorrect, setConsecutiveCorrect] = useState(0);
   
-  const [selectedAnswers, setSelectedAnswers] = useState([]);
+  // Flexible state: String (fill), Array (single/multiple), Object (match)
+  const [answerState, setAnswerState] = useState(null); 
+  const [shuffledMatchOptions, setShuffledMatchOptions] = useState([]);
+  
   const [isWrong, setIsWrong] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
   const [score, setScore] = useState(0);
@@ -21,16 +24,8 @@ const AdaptiveQuiz = ({ lessonId, onComplete }) => {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
         const res = await axios.get(`${apiUrl}/api/quizzes/${lessonId}`);
-        
-        const validQuestions = res.data.questions.filter(q => {
-          if (q.type === 'fill') return true;
-          if (q.options) {
-             return q.options.some(o => o.isCorrect === true || String(o.isCorrect).toLowerCase() === 'true');
-          }
-          return false;
-        });
-
-        setQuestions(validQuestions);
+        // We now trust the AI to send valid questions based on our JSON enforcer
+        setQuestions(res.data.questions || []);
         setLoading(false);
       } catch (err) {
         console.error("Failed to load adaptive quiz", err);
@@ -62,55 +57,55 @@ const AdaptiveQuiz = ({ lessonId, onComplete }) => {
     setCurrentQuestion(nextQ);
     setAskedTexts([...askedTexts, nextQ.text]);
     
-    setSelectedAnswers([]);
+    // ✅ UI MORPHING: Initialize the correct answer state based on the AI's question type
+    if (nextQ.type === 'match') {
+      setAnswerState({}); // Use object for key-value matching
+      setShuffledMatchOptions(nextQ.options.map(o => o.matchRight).sort(() => Math.random() - 0.5));
+    } else if (nextQ.type === 'fill') {
+      setAnswerState(''); // Use string for text input
+    } else {
+      setAnswerState([]); // Use array for checkboxes/radios
+    }
+
     setIsWrong(false);
     setShowExplanation(false);
   };
 
-  const getOptionText = (opt) => {
-    if (typeof opt === 'string') return opt;
-    if (opt.text) return opt.text;
-    if (opt.value) return opt.value;
-    return Object.entries(opt).filter(([key, value]) => key !== '_id' && typeof value === 'string').map(([key, value]) => value).join(' - ');
-  };
+  const isMultiSelect = currentQuestion?.type === 'multiple';
 
-  const correctOptionsCount = currentQuestion?.options?.filter(o => 
-    o.isCorrect === true || String(o.isCorrect).toLowerCase() === 'true'
-  ).length || 0;
-  const isMultiSelect = correctOptionsCount > 1;
-
-  const handleOptionToggle = (optValue) => {
+  const handleOptionToggle = (optText) => {
     setIsWrong(false);
     if (isMultiSelect) {
-      setSelectedAnswers(prev => 
-        prev.includes(optValue) ? prev.filter(v => v !== optValue) : [...prev, optValue]
-      );
+      setAnswerState(prev => prev.includes(optText) ? prev.filter(v => v !== optText) : [...prev, optText]);
     } else {
-      setSelectedAnswers([optValue]); 
+      setAnswerState([optText]); 
     }
   };
 
   const handleSubmit = () => {
     let correct = false;
 
+    // ✅ DYNAMIC GRADING ALGORITHM
     if (currentQuestion.type === 'fill') {
-      const answerStr = selectedAnswers[0] || '';
-      correct = answerStr.toLowerCase().trim() === (currentQuestion.correctAnswerText || currentQuestion.answer || '').toLowerCase().trim();
+      const ans = (answerState || '').toLowerCase().trim();
+      const cor = (currentQuestion.correctAnswerText || currentQuestion.answer || '').toLowerCase().trim();
+      correct = ans === cor;
+    } else if (currentQuestion.type === 'match') {
+      // Must match every left-side term to its exact right-side definition
+      correct = currentQuestion.options.every(o => answerState[o.matchLeft] === o.matchRight);
     } else {
       const correctValues = currentQuestion.options
-        .filter(o => o.isCorrect === true || String(o.isCorrect).toLowerCase() === 'true' || (o.text || o.value) === currentQuestion.correctAnswer)
-        .map(o => o._id || getOptionText(o));
+        .filter(o => o.isCorrect === true || String(o.isCorrect).toLowerCase() === 'true')
+        .map(o => o.text);
 
       if (isMultiSelect) {
-        correct = selectedAnswers.length === correctValues.length && selectedAnswers.every(v => correctValues.includes(v));
+        correct = answerState.length === correctValues.length && answerState.every(v => correctValues.includes(v));
       } else {
-        const answerStr = selectedAnswers[0] || '';
-        correct = correctValues.includes(answerStr) || answerStr.toLowerCase().trim() === (currentQuestion.correctAnswer || currentQuestion.answer || '').toLowerCase().trim();
+        correct = correctValues.includes(answerState[0]);
       }
     }
 
     if (correct) {
-      // ✅ FIX: Only lock the inputs and show the "Next Question" button if they got it right!
       setShowExplanation(true); 
       const newStreak = consecutiveCorrect + 1;
       setConsecutiveCorrect(newStreak);
@@ -122,17 +117,22 @@ const AdaptiveQuiz = ({ lessonId, onComplete }) => {
         setConsecutiveCorrect(0); 
       }
     } else {
-      // ✅ FIX: Keep inputs open! They must try again.
       setIsWrong(true);
       setConsecutiveCorrect(0); 
       if (currentDifficulty > 1) {
-        setCurrentDifficulty(currentDifficulty - 1); // Adaptive engine still punishes them by lowering difficulty for the next question
+        setCurrentDifficulty(currentDifficulty - 1); 
       }
     }
   };
 
   if (loading) return <div className="glass-card p-5 text-center">🧠 AI is compiling your adaptive exam...</div>;
   if (!currentQuestion) return null;
+
+  // Evaluate if they have filled out enough info to click "Check Answer"
+  let canSubmit = false;
+  if (currentQuestion.type === 'fill') canSubmit = typeof answerState === 'string' && answerState.trim().length > 0;
+  else if (currentQuestion.type === 'match') canSubmit = answerState && Object.keys(answerState).length === currentQuestion.options.length;
+  else canSubmit = answerState && answerState.length > 0;
 
   return (
     <div className="glass-card" style={{ padding: '30px', maxWidth: '600px', margin: '0 auto', borderRadius: '20px' }}>
@@ -148,13 +148,13 @@ const AdaptiveQuiz = ({ lessonId, onComplete }) => {
 
       <h3 style={{ color: 'var(--text-primary)', marginBottom: '5px', lineHeight: '1.4' }}>{currentQuestion.text}</h3>
       {isMultiSelect && <p style={{ fontSize: '12px', color: 'var(--accent-color)', marginTop: 0, marginBottom: '20px', fontWeight: 'bold' }}>(Select all that apply)</p>}
+      {currentQuestion.type === 'match' && <p style={{ fontSize: '12px', color: 'var(--accent-color)', marginTop: 0, marginBottom: '20px', fontWeight: 'bold' }}>(Match the terms below)</p>}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
-        {currentQuestion.type !== 'fill' && currentQuestion.options && currentQuestion.options.map((opt, idx) => {
-          const displayText = getOptionText(opt);
-          const optValue = opt._id || displayText; 
-          const isSelected = selectedAnswers.includes(optValue);
-
+        
+        {/* MULTIPLE CHOICE & SINGLE CHOICE */}
+        {(currentQuestion.type === 'single' || currentQuestion.type === 'multiple') && currentQuestion.options?.map((opt, idx) => {
+          const isSelected = answerState?.includes(opt.text);
           return (
             <label key={idx} style={{ 
               padding: '15px', 
@@ -167,24 +167,25 @@ const AdaptiveQuiz = ({ lessonId, onComplete }) => {
               <input 
                 type={isMultiSelect ? "checkbox" : "radio"} 
                 name="quizOption" 
-                value={optValue} 
-                checked={isSelected}
-                onChange={() => handleOptionToggle(optValue)} 
+                value={opt.text} 
+                checked={isSelected || false}
+                onChange={() => handleOptionToggle(opt.text)} 
                 style={{ marginRight: '12px' }} 
                 disabled={showExplanation} 
               />
-              <span style={{ fontSize: '15px', fontWeight: '500' }}>{displayText}</span>
+              <span style={{ fontSize: '15px', fontWeight: '500' }}>{opt.text}</span>
             </label>
           );
         })}
 
+        {/* FILL IN THE BLANK */}
         {currentQuestion.type === 'fill' && (
           <input 
             type="text" 
             placeholder="Type your answer here..."
-            value={selectedAnswers[0] || ''}
-            onChange={(e) => { setSelectedAnswers([e.target.value]); setIsWrong(false); }}
-            onKeyDown={(e) => { if (e.key === 'Enter' && selectedAnswers.length > 0) handleSubmit(); }}
+            value={answerState || ''}
+            onChange={(e) => { setAnswerState(e.target.value); setIsWrong(false); }}
+            onKeyDown={(e) => { if (e.key === 'Enter' && canSubmit) handleSubmit(); }}
             disabled={showExplanation}
             style={{ 
               padding: '15px', borderRadius: '12px', border: '2px solid var(--card-border)', 
@@ -193,6 +194,27 @@ const AdaptiveQuiz = ({ lessonId, onComplete }) => {
             }}
           />
         )}
+
+        {/* ✅ THE NEW MATCHING UI */}
+        {currentQuestion.type === 'match' && currentQuestion.options?.map((opt, idx) => (
+          <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '15px', background: 'rgba(255,255,255,0.05)', padding: '15px', borderRadius: '12px', border: '1px solid var(--card-border)', opacity: showExplanation ? 0.7 : 1 }}>
+            <div style={{ flex: 1, fontWeight: 'bold', color: 'var(--text-primary)' }}>{opt.matchLeft}</div>
+            <select 
+              disabled={showExplanation}
+              value={(answerState && answerState[opt.matchLeft]) || ""} 
+              onChange={e => {
+                setAnswerState({ ...answerState, [opt.matchLeft]: e.target.value });
+                setIsWrong(false);
+              }}
+              style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'var(--bg-body)', color: 'var(--text-primary)', outline: 'none', cursor: showExplanation ? 'not-allowed' : 'pointer' }}
+            >
+              <option value="" disabled>Select match...</option>
+              {shuffledMatchOptions.map((rightOpt, i) => (
+                <option key={i} value={rightOpt}>{rightOpt}</option>
+              ))}
+            </select>
+          </div>
+        ))}
       </div>
 
       {isWrong && (
@@ -215,13 +237,13 @@ const AdaptiveQuiz = ({ lessonId, onComplete }) => {
       {!showExplanation ? (
         <button 
           onClick={handleSubmit} 
-          disabled={selectedAnswers.length === 0}
+          disabled={!canSubmit}
           style={{ 
             width: '100%', padding: '15px', borderRadius: '12px', border: 'none', 
-            cursor: selectedAnswers.length > 0 ? 'pointer' : 'not-allowed', 
+            cursor: canSubmit ? 'pointer' : 'not-allowed', 
             background: 'var(--accent-color)', 
             color: '#fff', fontWeight: 'bold', fontSize: '16px', transition: 'all 0.3s',
-            opacity: selectedAnswers.length > 0 ? 1 : 0.5 
+            opacity: canSubmit ? 1 : 0.5 
           }}
         >
           Check Answer
