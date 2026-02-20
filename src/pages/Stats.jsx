@@ -15,43 +15,26 @@ const Stats = ({ username, onNavigate }) => {
     const fetchUserStats = async () => {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-        const res = await axios.get(`${apiUrl}/api/users/${username}`);
+        
+        // ✅ DYNAMIC FETCH: Pulling real calculations from the backend
+        const res = await axios.get(`${apiUrl}/api/users/${username}/stats`);
         const data = res.data;
 
-        const totalXP = data.xp || 0;
-        // Mock accuracy based on progression, or use real DB field if it exists
-        const calcAccuracy = data.accuracy || (totalXP > 0 ? 85 : 0); 
-        const calcStreak = data.streak || (totalXP > 0 ? 1 : 0);
-
         setStats({
-          streak: calcStreak,
-          xp: totalXP,
-          accuracy: calcAccuracy
+          streak: data.streak,
+          xp: data.xp,
+          accuracy: data.accuracy
         });
 
-        // ✅ PIE CHART DATA
+        // Map Pie Chart Data
         setAccuracyData([ 
-          { name: 'Correct', value: calcAccuracy }, 
-          { name: 'Incorrect', value: 100 - calcAccuracy } 
+          { name: 'Correct', value: data.accuracy }, 
+          { name: 'Incorrect', value: 100 - data.accuracy } 
         ]);
 
-        // ✅ BAR CHART DATA
-        // If your backend returns an array of weekly XP, use it. 
-        // Otherwise, dynamically distribute their total XP across the week for visual effect.
-        if (data.weeklyActivity) {
-            setActivityData(data.weeklyActivity);
-        } else {
-            const dailyAvg = Math.floor(totalXP / 7);
-            setActivityData([
-              { day: 'Mon', xp: dailyAvg > 0 ? dailyAvg + 10 : 0 }, 
-              { day: 'Tue', xp: dailyAvg > 0 ? dailyAvg - 5 : 0 }, 
-              { day: 'Wed', xp: dailyAvg > 0 ? dailyAvg + 20 : 0 },
-              { day: 'Thu', xp: dailyAvg }, 
-              { day: 'Fri', xp: dailyAvg > 0 ? dailyAvg + 15 : 0 }, 
-              { day: 'Sat', xp: 0 }, 
-              { day: 'Sun', xp: dailyAvg > 0 ? dailyAvg + 30 : 0 }
-            ]);
-        }
+        // Map Bar Chart Data
+        setActivityData(data.weeklyActivity);
+
       } catch (err) {
         console.error("Failed to fetch analytics:", err);
       } finally {
@@ -65,7 +48,7 @@ const Stats = ({ username, onNavigate }) => {
   if (loading) {
     return (
       <div style={{ height: '100vh', width: '100vw', display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'var(--bg-body)' }}>
-        <h3 style={{ color: 'var(--accent-color)' }}>Compiling Analytics...</h3>
+        <h3 style={{ color: 'var(--accent-color)' }}>Compiling Academic Data...</h3>
       </div>
     );
   }
@@ -79,16 +62,12 @@ const Stats = ({ username, onNavigate }) => {
           <button 
             onClick={() => onNavigate('dashboard')} 
             className="glass-card" 
-            style={{ 
-              width: '45px', height: '45px', borderRadius: '50%', 
-              display: 'flex', alignItems: 'center', justifyContent: 'center', 
-              cursor: 'pointer', marginRight: '20px', color: 'var(--text-primary)' 
-            }}>
+            style={{ width: '45px', height: '45px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginRight: '20px', color: 'var(--text-primary)' }}>
             <FaArrowLeft size={18} />
           </button>
           <div>
             <h1 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '24px' }}>Learning Analytics</h1>
-            <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '14px' }}>Track your gamification velocity, {username}</p>
+            <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '14px' }}>Real-time velocity for {username}</p>
           </div>
         </div>
 
@@ -102,12 +81,12 @@ const Stats = ({ username, onNavigate }) => {
           <div className="glass-card" style={{ padding: '20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <FaChartBar size={30} color="#0984e3" />
             <h2 style={{ margin: '10px 0 0 0', color: 'var(--text-primary)', fontSize: '20px' }}>{stats.xp.toLocaleString()} XP</h2>
-            <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Earned Total</span>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Database Total</span>
           </div>
           <div className="glass-card" style={{ padding: '20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <FaChartPie size={30} color="#00b894" />
             <h2 style={{ margin: '10px 0 0 0', color: 'var(--text-primary)', fontSize: '20px' }}>{stats.accuracy}%</h2>
-            <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Quiz Accuracy</span>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Average Accuracy</span>
           </div>
         </div>
 
