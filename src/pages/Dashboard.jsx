@@ -12,12 +12,6 @@ import {
 import axios from 'axios';
 import { toast } from 'react-hot-toast';
 
-const ALL_COURSES = [
-  { id: 1, title: "Intro to Software Engineering", module: "Module 1", xp: 50, videoId: "zOjov-2OZ0E" },
-  { id: 2, title: "Requirement Gathering", module: "Module 2", xp: 100, videoId: "9K7g8k5_xIQ" },
-  { id: 3, title: "Gamification Logic", module: "Module 3", xp: 150, videoId: "m2uxP-kZk24" },
-];
-
 const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, currentTheme, onStartLesson, onOpenChat }) => {
   const [userData, setUserData] = useState(null); 
   const [xp, setXP] = useState(0); 
@@ -26,8 +20,6 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activities, setActivities] = useState([]); 
   const [courses, setCourses] = useState([]);
-  
-  // ✅ NEW: Added stats state to track live streak and accuracy
   const [stats, setStats] = useState({ streak: 0, accuracy: 0 });
 
   const [academicLevel, setAcademicLevel] = useState("Lvl 100"); 
@@ -44,19 +36,21 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       
-      // ✅ PARALLEL FETCH: Gets profile and live analytics at once
-      const [profileRes, statsRes] = await Promise.all([
+      // ✅ Dynamic Fetch: Pulling Profile, Stats, AND the new Dynamic Courses simultaneously
+      const [profileRes, statsRes, coursesRes] = await Promise.all([
         axios.get(`${apiUrl}/api/users/${username}`),
-        axios.get(`${apiUrl}/api/users/${username}/stats`)
+        axios.get(`${apiUrl}/api/users/${username}/stats`),
+        axios.get(`${apiUrl}/api/courses`)
       ]);
 
       const data = profileRes.data;
       const liveStats = statsRes.data;
+      const allDynamicCourses = coursesRes.data;
       
       setUserData(data); 
       setXP(data.xp || 0);
       setLevel(data.level || 1);
-      setStats(liveStats); // ✅ Syncs real streak and accuracy from the engine
+      setStats(liveStats); 
       
       setMajor(data.major || "Independent Learner"); 
       setAcademicLevel(data.academicLevel || "Beginner");
@@ -65,7 +59,6 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
       const userCoursesCompleted = data.completedCourses || [];
       const userEnrolled = data.enrolledCourses || []; 
 
-      // Fetch Global Activity Feed
       try {
           const feedRes = await axios.get(`${apiUrl}/api/users/activities`);
           setActivities(feedRes.data);
@@ -78,11 +71,12 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
         isUnlocked: userBadges.includes(b.name) || (b.name === "Early Bird" && (data.xp || 0) >= 1000)
       })));
 
-      const activeCourses = ALL_COURSES
-        .filter(course => userEnrolled.includes(String(course.id)))
+      // ✅ Map the fetched dynamic courses, matching on MongoDB's _id
+      const activeCourses = allDynamicCourses
+        .filter(course => userEnrolled.includes(String(course._id)))
         .map(course => ({
           ...course,
-          completed: userCoursesCompleted.includes(String(course.id))
+          completed: userCoursesCompleted.includes(String(course._id))
         }));
 
       setCourses(activeCourses);
@@ -172,7 +166,6 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Attendance Streak</span>
-                  {/* ✅ SYNCED: Now displays the actual calculated streak from the backend */}
                   <span style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: 'bold' }}>🔥 {stats.streak} {stats.streak === 1 ? 'Day' : 'Days'}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--card-border)', paddingTop: '10px', marginTop: '5px' }}>
@@ -201,7 +194,7 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
               {courses.length > 0 ? (
                 <>
                   {courses.map(course => (
-                    <CourseCard key={course.id} {...course} isCompleted={course.completed} onClick={() => onStartLesson(course)} />
+                    <CourseCard key={course._id} {...course} isCompleted={course.completed} onClick={() => onStartLesson(course)} />
                   ))}
                   <button onClick={() => onNavigate('course-catalog')} className="add-course-btn">
                     <FaPlus /> Enroll in New Course

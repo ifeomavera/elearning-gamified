@@ -15,17 +15,23 @@ const AdminDashboard = ({ onLogout, toggleTheme, currentTheme, role, onOpenChat 
   const [generatingId, setGeneratingId] = useState(null);
   const [editingStudent, setEditingStudent] = useState(null);
   
-  // Curriculum State
-  const [courses, setCourses] = useState(() => {
-    const saved = localStorage.getItem('appCourses');
-    return saved ? JSON.parse(saved) : [];
-  });
-  
+  // Curriculum State (Now dynamically fetched)
+  const [courses, setCourses] = useState([]);
   const [newCourse, setNewCourse] = useState({ title: "", module: "", xp: 100, videoId: "" });
 
+  // Fetch Courses from DB
   useEffect(() => {
-    localStorage.setItem('appCourses', JSON.stringify(courses));
-  }, [courses]);
+    const fetchCourses = async () => {
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        const res = await axios.get(`${apiUrl}/api/courses`);
+        setCourses(res.data);
+      } catch (err) {
+        console.error("Failed to load curriculum:", err);
+      }
+    };
+    fetchCourses();
+  }, []);
 
   // Scholar State
   const [students, setStudents] = useState([]);
@@ -37,7 +43,6 @@ const AdminDashboard = ({ onLogout, toggleTheme, currentTheme, role, onOpenChat 
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       const res = await axios.get(`${apiUrl}/api/users`); 
       const currentUserId = localStorage.getItem('userId');
-      // Filter out the logged-in admin from the student list
       const activeScholars = res.data.filter(u => u._id !== currentUserId);
       setStudents(activeScholars);
     } catch (err) {
@@ -52,7 +57,7 @@ const AdminDashboard = ({ onLogout, toggleTheme, currentTheme, role, onOpenChat 
     if (activeTab === 'students') fetchScholars();
   }, [activeTab]);
 
-  // Forum Mock State (Preserved from your original)
+  // Forum Mock State
   const [posts] = useState([
     { id: 1, author: "Spam Bot", content: "Buy crypto now!!!", flag: "Spam" },
     { id: 2, author: "TrollMaster", content: "This course is too easy lol", flag: "Behavior" }
@@ -83,15 +88,17 @@ const AdminDashboard = ({ onLogout, toggleTheme, currentTheme, role, onOpenChat 
     }
   };
 
+  // --- COURSE API HANDLERS ---
+
   const handleGenerateAIQuiz = async (course) => {
-    setGeneratingId(course.id);
+    setGeneratingId(course._id);
     const toastId = toast.loading(`Generating AI Logic for ${course.title}...`);
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       const lessonContent = `${course.title} within ${course.module}. Focus on core principles and adaptive assessment.`;
 
       await axios.post(`${apiUrl}/api/quizzes/generate`, {
-        lessonId: `lesson-00${course.id}`,
+        lessonId: `lesson-00${course._id}`,
         lessonContent: lessonContent
       });
 
@@ -103,27 +110,37 @@ const AdminDashboard = ({ onLogout, toggleTheme, currentTheme, role, onOpenChat 
     }
   };
 
-  const handleAddCourse = (e) => {
+  const handleAddCourse = async (e) => {
     e.preventDefault();
     if (!newCourse.title || !newCourse.videoId) return toast.error("Details incomplete");
 
-    const courseToAdd = {
-      id: Date.now(),
-      title: newCourse.title,
-      module: newCourse.module || "Phase 1",
-      xp: parseInt(newCourse.xp),
-      videoId: newCourse.videoId,
-    };
+    try {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const res = await axios.post(`${apiUrl}/api/courses`, {
+        title: newCourse.title,
+        module: newCourse.module || "Phase 1",
+        xp: parseInt(newCourse.xp),
+        videoId: newCourse.videoId,
+      });
 
-    setCourses([...courses, courseToAdd]);
-    setNewCourse({ title: "", module: "", xp: 100, videoId: "" });
-    toast.success("Curriculum Matrix Updated!");
+      setCourses([...courses, res.data]);
+      setNewCourse({ title: "", module: "", xp: 100, videoId: "" });
+      toast.success("Curriculum Matrix Updated!");
+    } catch (err) {
+      toast.error("Failed to deploy to database.");
+    }
   };
 
-  const handleDeleteCourse = (id) => {
+  const handleDeleteCourse = async (id) => {
     if(window.confirm("Confirm deletion of this module?")) {
-      setCourses(courses.filter(c => c.id !== id));
-      toast.success("Module removed from catalog.");
+      try {
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+        await axios.delete(`${apiUrl}/api/courses/${id}`);
+        setCourses(courses.filter(c => c._id !== id));
+        toast.success("Module removed from catalog.");
+      } catch (err) {
+        toast.error("Failed to delete.");
+      }
     }
   };
 
@@ -147,7 +164,7 @@ const AdminDashboard = ({ onLogout, toggleTheme, currentTheme, role, onOpenChat 
 
       <div style={{ display: 'grid', gap: '10px' }}>
         {courses.map(course => (
-          <div key={course.id} className="glass-card" style={{ padding: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div key={course._id} className="glass-card" style={{ padding: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <div style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>{course.title}</div>
               <div style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{course.module} • {course.xp} XP</div>
@@ -156,13 +173,13 @@ const AdminDashboard = ({ onLogout, toggleTheme, currentTheme, role, onOpenChat 
             <div style={{ display: 'flex', gap: '10px' }}>
               <button 
                 onClick={() => handleGenerateAIQuiz(course)} 
-                disabled={generatingId === course.id} 
+                disabled={generatingId === course._id} 
                 style={styles.aiBtn}
               >
-                {generatingId === course.id ? <FaBrain className="fa-spin" /> : <FaMagic />}
-                {generatingId === course.id ? "Analyzing..." : "AI Quiz"}
+                {generatingId === course._id ? <FaBrain className="fa-spin" /> : <FaMagic />}
+                {generatingId === course._id ? "Analyzing..." : "AI Quiz"}
               </button>
-              <button onClick={() => handleDeleteCourse(course.id)} style={styles.deleteBtn}><FaTrash /></button>
+              <button onClick={() => handleDeleteCourse(course._id)} style={styles.deleteBtn}><FaTrash /></button>
             </div>
           </div>
         ))}
@@ -262,7 +279,6 @@ const AdminDashboard = ({ onLogout, toggleTheme, currentTheme, role, onOpenChat 
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-body)' }}>
-      {/* SIDEBAR */}
       <div style={{ width: '260px', background: 'rgba(0,0,0,0.15)', borderRight: '1px solid var(--card-border)', padding: '25px', display: 'flex', flexDirection: 'column' }}>
         <div style={{ marginBottom: '40px' }}>
           <h2 style={{ color: 'var(--accent-color)', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '10px', fontWeight: '900' }}>
@@ -289,7 +305,6 @@ const AdminDashboard = ({ onLogout, toggleTheme, currentTheme, role, onOpenChat 
         </div>
       </div>
 
-      {/* CONTENT AREA */}
       <div style={{ flex: 1, padding: '40px', overflowY: 'auto' }}>
         {activeTab === 'courses' && renderCourses()}
         {activeTab === 'students' && renderStudents()}
