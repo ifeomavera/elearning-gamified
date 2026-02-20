@@ -17,12 +17,14 @@ import HallOfFame from './pages/HallOfFame';
 import CourseCatalog from './pages/CourseCatalog';
 import StudentDirectory from './pages/StudentDirectory';
 import ChatBox from './components/ChatBox'; 
+import Banned from './pages/Banned'; // ✅ IMPORTED BANNED SCREEN
 import { Toaster, toast } from 'react-hot-toast';
 import axios from 'axios';
 
-// ✅ FIXED: Moved ProtectedRoute OUTSIDE of App so it doesn't trigger a remount
-const ProtectedRoute = ({ user, children }) => {
+// ✅ UPGRADED: ProtectedRoute now checks for Bans and intercepts navigation
+const ProtectedRoute = ({ user, isBanned, children }) => {
   if (!user) return <Navigate to="/login" replace />;
+  if (isBanned) return <Navigate to="/banned" replace />; // The Interceptor
   return children;
 };
 
@@ -41,6 +43,9 @@ function App() {
     const savedRole = localStorage.getItem('currentRole');
     return savedRole ? savedRole.toLowerCase() : 'scholar';
   }); 
+
+  // ✅ ADDED: State to track if the current user is locked out
+  const [isBanned, setIsBanned] = useState(() => localStorage.getItem('isBanned') === 'true');
 
   const [avatar, setAvatar] = useState(() => localStorage.getItem('userAvatar') || "👨‍💻");
   const [activeChatFriend, setActiveChatFriend] = useState(null); 
@@ -80,7 +85,8 @@ function App() {
 
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
-  const handleLogin = (username, userRoleFromDB, userId) => {
+  // ✅ UPGRADED: handleLogin now accepts a 4th parameter (userIsBanned)
+  const handleLogin = (username, userRoleFromDB, userId, userIsBanned = false) => {
     if (!userId || userId === 'undefined') {
       console.error("Critical Auth Error: Missing User ID in handshake.");
       return toast.error("Identity sync failed. Please contact admin.");
@@ -91,6 +97,7 @@ function App() {
     setUser(username);
     setCurrentId(userId); 
     setRole(normalizedRole);
+    setIsBanned(userIsBanned); // Save ban status to state
     
     const currentAvatar = localStorage.getItem('userAvatar') || "👨‍💻";
     setAvatar(currentAvatar);
@@ -99,15 +106,22 @@ function App() {
     localStorage.setItem('userId', userId);
     localStorage.setItem('currentRole', normalizedRole);
     localStorage.setItem('userAvatar', currentAvatar);
+    localStorage.setItem('isBanned', userIsBanned); // Save ban status to storage
     
-    toast.success(`Access Granted. Welcome, ${username}!`);
-    navigate('/dashboard');
+    if (userIsBanned) {
+      toast.error("Account access is restricted.");
+      navigate('/banned');
+    } else {
+      toast.success(`Access Granted. Welcome, ${username}!`);
+      navigate('/dashboard');
+    }
   };
 
   const handleLogout = () => {
     setUser(null);
     setCurrentId(null);
     setRole('scholar');
+    setIsBanned(false); // Reset ban status on logout
     setActiveChatFriend(null);
     localStorage.clear();
     navigate('/login');
@@ -151,13 +165,19 @@ function App() {
       
       <Routes>
         <Route path="/login" element={<Login onLogin={handleLogin} onNavigate={handleNavigate} />} />
-        <Route path="/register" element={<Register onSignUp={(name, id, uRole) => handleLogin(name, uRole, id)} onNavigate={handleNavigate} />} />
+        <Route path="/register" element={<Register onSignUp={(name, id, uRole, isBanned) => handleLogin(name, uRole, id, isBanned)} onNavigate={handleNavigate} />} />
         <Route path="/forgot-password" element={<ForgotPassword onNavigate={handleNavigate} />} />
         <Route path="/reset-password/:resetToken" element={<ResetPassword />} />
         <Route path="/credits" element={<Credits onNavigate={handleNavigate} />} />
 
+        {/* ✅ THE JAIL: Banned Route */}
+        <Route path="/banned" element={
+          user && isBanned ? <Banned onLogout={handleLogout} /> : <Navigate to="/dashboard" replace />
+        } />
+
+        {/* ✅ PROTECTED ROUTES: Now passing isBanned to all of them */}
         <Route path="/dashboard" element={
-          <ProtectedRoute user={user}>
+          <ProtectedRoute user={user} isBanned={isBanned}>
             {(role === 'admin' || role === 'instructor') ? (
               <AdminDashboard 
                 onLogout={handleLogout} 
@@ -181,21 +201,20 @@ function App() {
           </ProtectedRoute>
         } />
 
-        {/* ✅ PASSED USER PROP TO ALL PROTECTED ROUTES */}
-        <Route path="/hall-of-fame" element={<ProtectedRoute user={user}><HallOfFame username={user} onNavigate={handleNavigate} onOpenChat={openChat} /></ProtectedRoute>} />
-        <Route path="/leaderboard" element={<ProtectedRoute user={user}><Leaderboard username={user} onNavigate={handleNavigate} /></ProtectedRoute>} />
-        <Route path="/course-catalog" element={<ProtectedRoute user={user}><CourseCatalog username={user} onNavigate={handleNavigate} /></ProtectedRoute>} />
-        <Route path="/directory" element={<ProtectedRoute user={user}><StudentDirectory currentUsername={user} onNavigate={handleNavigate} /></ProtectedRoute>} />
-        <Route path="/profile" element={<ProtectedRoute user={user}><Profile onNavigate={handleNavigate} onUpdateProfile={setUser} /></ProtectedRoute>} />
-        <Route path="/lesson" element={<ProtectedRoute user={user}><LessonView lesson={activeLesson} onComplete={handleLessonComplete} onExit={() => navigate('/dashboard')} /></ProtectedRoute>} />
-        <Route path="/forum" element={<ProtectedRoute user={user}><Forum username={user} avatar={avatar} onNavigate={handleNavigate} /></ProtectedRoute>} />
-        <Route path="/stats" element={<ProtectedRoute user={user}><Stats username={user} onNavigate={handleNavigate} /></ProtectedRoute>} />
+        <Route path="/hall-of-fame" element={<ProtectedRoute user={user} isBanned={isBanned}><HallOfFame username={user} onNavigate={handleNavigate} onOpenChat={openChat} /></ProtectedRoute>} />
+        <Route path="/leaderboard" element={<ProtectedRoute user={user} isBanned={isBanned}><Leaderboard username={user} onNavigate={handleNavigate} /></ProtectedRoute>} />
+        <Route path="/course-catalog" element={<ProtectedRoute user={user} isBanned={isBanned}><CourseCatalog username={user} onNavigate={handleNavigate} /></ProtectedRoute>} />
+        <Route path="/directory" element={<ProtectedRoute user={user} isBanned={isBanned}><StudentDirectory currentUsername={user} onNavigate={handleNavigate} /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute user={user} isBanned={isBanned}><Profile onNavigate={handleNavigate} onUpdateProfile={setUser} /></ProtectedRoute>} />
+        <Route path="/lesson" element={<ProtectedRoute user={user} isBanned={isBanned}><LessonView lesson={activeLesson} onComplete={handleLessonComplete} onExit={() => navigate('/dashboard')} /></ProtectedRoute>} />
+        <Route path="/forum" element={<ProtectedRoute user={user} isBanned={isBanned}><Forum username={user} avatar={avatar} onNavigate={handleNavigate} /></ProtectedRoute>} />
+        <Route path="/stats" element={<ProtectedRoute user={user} isBanned={isBanned}><Stats username={user} onNavigate={handleNavigate} /></ProtectedRoute>} />
         
         <Route path="*" element={<Navigate to={user ? "/dashboard" : "/login"} replace />} />
       </Routes>
 
-      {/* ✅ PERSISTENT MESSENGER: High Z-Index ensures it stays above sidebars */}
-      {activeChatFriend && currentId && (
+      {/* Persistent Messenger */}
+      {activeChatFriend && currentId && !isBanned && (
         <div style={{ position: 'fixed', zIndex: 100000, bottom: 0, right: 0 }}>
             <ChatBox 
               currentUserId={currentId} 

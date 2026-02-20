@@ -21,10 +21,11 @@ const Login = ({ onLogin, onNavigate }) => {
         password
       });
 
-      // ✅ 1. IDENTITY EXTRACTION: Surgical fix for the 'undefined' ID issue
+      // ✅ IDENTITY EXTRACTION: Pulls ID, Role, AND the Ban Status
       const userData = res.data.user || res.data;
       const userId = userData._id || userData.id || res.data.userId; 
       const userRoleFromDB = userData.role ? String(userData.role).toLowerCase() : 'scholar'; 
+      const userIsBanned = userData.isBanned === true; // Extract the ban status
 
       if (!userId) {
         console.error("Login Success but no ID found in response:", res.data);
@@ -32,7 +33,7 @@ const Login = ({ onLogin, onNavigate }) => {
         return;
       }
 
-      // ✅ 2. Dev Bypass Logic
+      // Dev Bypass Logic
       const devUsers = ['KAY FLOCK', 'Paul', 'Admin'];
       const isDev = devUsers.includes(userData.username);
 
@@ -43,9 +44,9 @@ const Login = ({ onLogin, onNavigate }) => {
         }
       }
 
-      // ✅ 3. THE HANDSHAKE: Passing the verified userId to App.jsx
+      // ✅ THE HANDSHAKE: Passing the verified userId AND isBanned status to App.jsx
       const finalRole = (isAdminLogin && isDev) ? 'admin' : userRoleFromDB;
-      onLogin(userData.username, finalRole, userId);
+      onLogin(userData.username, finalRole, userId, userIsBanned); // Added 4th parameter here
 
     } catch (err) {
       console.error("Login Failed:", err);
