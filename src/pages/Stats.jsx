@@ -26,13 +26,13 @@ const Stats = ({ username, onNavigate }) => {
           accuracy: data.accuracy
         });
 
-        // Map Pie Chart Data
+        // ✅ Map Pie Chart Data: Dynamically calculates remaining 'Incorrect' percentage
         setAccuracyData([ 
           { name: 'Correct', value: data.accuracy }, 
           { name: 'Incorrect', value: 100 - data.accuracy } 
         ]);
 
-        // Map Bar Chart Data
+        // ✅ Map Bar Chart Data: Injects the real weeklyActivity array from the backend
         setActivityData(data.weeklyActivity);
 
       } catch (err) {
@@ -75,7 +75,7 @@ const Stats = ({ username, onNavigate }) => {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '15px', marginBottom: '40px' }}>
           <div className="glass-card" style={{ padding: '20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <FaFire size={30} color="#e17055" />
-            <h2 style={{ margin: '10px 0 0 0', color: 'var(--text-primary)', fontSize: '20px' }}>{stats.streak} Day</h2>
+            <h2 style={{ margin: '10px 0 0 0', color: 'var(--text-primary)', fontSize: '20px' }}>{stats.streak} {stats.streak === 1 ? 'Day' : 'Days'}</h2>
             <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Current Streak</span>
           </div>
           <div className="glass-card" style={{ padding: '20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>

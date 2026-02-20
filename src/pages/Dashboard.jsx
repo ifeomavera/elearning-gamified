@@ -26,6 +26,9 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [activities, setActivities] = useState([]); 
   const [courses, setCourses] = useState([]);
+  
+  // ✅ NEW: Added stats state to track live streak and accuracy
+  const [stats, setStats] = useState({ streak: 0, accuracy: 0 });
 
   const [academicLevel, setAcademicLevel] = useState("Lvl 100"); 
   const [major, setMajor] = useState("Scholar");
@@ -40,12 +43,20 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
     if (xp === 0) setLoading(true);
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      const res = await axios.get(`${apiUrl}/api/users/${username}`);
-      const data = res.data;
+      
+      // ✅ PARALLEL FETCH: Gets profile and live analytics at once
+      const [profileRes, statsRes] = await Promise.all([
+        axios.get(`${apiUrl}/api/users/${username}`),
+        axios.get(`${apiUrl}/api/users/${username}/stats`)
+      ]);
+
+      const data = profileRes.data;
+      const liveStats = statsRes.data;
       
       setUserData(data); 
       setXP(data.xp || 0);
       setLevel(data.level || 1);
+      setStats(liveStats); // ✅ Syncs real streak and accuracy from the engine
       
       setMajor(data.major || "Independent Learner"); 
       setAcademicLevel(data.academicLevel || "Beginner");
@@ -54,6 +65,7 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
       const userCoursesCompleted = data.completedCourses || [];
       const userEnrolled = data.enrolledCourses || []; 
 
+      // Fetch Global Activity Feed
       try {
           const feedRes = await axios.get(`${apiUrl}/api/users/activities`);
           setActivities(feedRes.data);
@@ -160,7 +172,8 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                   <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Attendance Streak</span>
-                  <span style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: 'bold' }}>🔥 1 Day</span>
+                  {/* ✅ SYNCED: Now displays the actual calculated streak from the backend */}
+                  <span style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: 'bold' }}>🔥 {stats.streak} {stats.streak === 1 ? 'Day' : 'Days'}</span>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--card-border)', paddingTop: '10px', marginTop: '5px' }}>
                   <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Dept / Focus</span>
@@ -227,11 +240,10 @@ const Dashboard = ({ username, avatar, onNavigate, onLogout, toggleTheme, curren
                     <div 
                       key={friend._id || friend.username} 
                       onClick={() => {
-                        // ✅ SAFETY CHECK: Ensures friend identity data is valid before opening chat
                         if (friend && (friend._id || friend.id)) {
-                           onOpenChat(friend);
+                            onOpenChat(friend);
                         } else {
-                           toast.error("Peer identity data incomplete.");
+                            toast.error("Peer identity data incomplete.");
                         }
                       }} 
                       className="messenger-item"
