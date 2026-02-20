@@ -1,12 +1,5 @@
-# --- Dependencies ---
 node_modules/
 dist/
-
-# --- The Backend (Crucial) ---
-# This prevents the frontend repo from seeing or tracking the backend folder
 backend/
-
-# --- Env & OS ---
 .env
 .env.local
-.DS_Store
