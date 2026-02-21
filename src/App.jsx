@@ -21,7 +21,6 @@ import Banned from './pages/Banned';
 import { Toaster, toast } from 'react-hot-toast';
 import axios from 'axios';
 
-// ProtectedRoute checks for Bans and intercepts navigation
 const ProtectedRoute = ({ user, isBanned, children }) => {
   if (!user) return <Navigate to="/login" replace />;
   if (isBanned) return <Navigate to="/banned" replace />; 
@@ -30,8 +29,6 @@ const ProtectedRoute = ({ user, isBanned, children }) => {
 
 function App() {
   const navigate = useNavigate();
-  const location = useLocation();
-
   const [user, setUser] = useState(() => localStorage.getItem('currentUser'));
   const [currentId, setCurrentId] = useState(() => localStorage.getItem('userId')); 
   const [role, setRole] = useState(() => localStorage.getItem('currentRole')?.toLowerCase() || 'scholar'); 
@@ -50,7 +47,6 @@ function App() {
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
   const handleLogin = (username, userRoleFromDB, userId, userIsBanned = false) => {
-    // ✅ MOBILE FIX: Normalize username to lowercase to prevent 500 errors
     const safeUsername = String(username).toLowerCase().trim();
     const normalizedRole = userRoleFromDB ? String(userRoleFromDB).toLowerCase() : 'scholar';
 
@@ -73,8 +69,7 @@ function App() {
   };
 
   const handleLogout = () => {
-    setUser(null); setCurrentId(null); setRole('scholar'); setIsBanned(false); 
-    setActiveChatFriend(null); localStorage.clear(); navigate('/login');
+    setUser(null); setCurrentId(null); localStorage.clear(); navigate('/login');
   };
 
   const handleLessonComplete = async (earnedXP) => {
@@ -86,7 +81,6 @@ function App() {
         xpEarned: earnedXP,
         courseId: activeLesson._id 
       });
-      // ✅ Trigger Dashboard Refresh
       setRefreshTrigger(prev => prev + 1);
       toast.success(`Milestone Cleared! +${earnedXP} XP`, { id: toastId });
       navigate('/dashboard');
@@ -100,36 +94,34 @@ function App() {
       <Toaster position="top-center" />
       <Routes>
         <Route path="/login" element={<Login onLogin={handleLogin} onNavigate={(v) => navigate(`/${v}`)} />} />
-        <Route path="/register" element={<Register onSignUp={(n, i, r, b) => handleLogin(n, r, id, b)} onNavigate={(v) => navigate(`/${v}`)} />} />
+        <Route path="/register" element={<Register onSignUp={(n, id, r, b) => handleLogin(n, r, id, b)} onNavigate={(v) => navigate(`/${v}`)} />} />
         
+        {/* ✅ DASHBOARD ROUTE */}
         <Route path="/dashboard" element={
           <ProtectedRoute user={user} isBanned={isBanned}>
-            {role === 'admin' ? (
-              <AdminDashboard onLogout={handleLogout} toggleTheme={toggleTheme} currentTheme={theme} role={role} />
-            ) : (
-              <Dashboard 
-                username={user} avatar={avatar} refreshTrigger={refreshTrigger}
-                onLogout={handleLogout} onNavigate={(v) => navigate(`/${v}`)} 
-                toggleTheme={toggleTheme} currentTheme={theme} 
-                onStartLesson={(l) => { setActiveLesson(l); navigate('/lesson'); }} 
-                onOpenChat={(f) => setActiveChatFriend(f)} 
-              />
-            )}
+            {role === 'admin' ? <AdminDashboard onLogout={handleLogout} /> : 
+            <Dashboard 
+              username={user} avatar={avatar} refreshTrigger={refreshTrigger}
+              onLogout={handleLogout} onNavigate={(v) => navigate(`/${v}`)} 
+              toggleTheme={toggleTheme} currentTheme={theme} 
+              onStartLesson={(l) => { setActiveLesson(l); navigate('/lesson'); }} 
+              onOpenChat={(f) => setActiveChatFriend(f)} 
+            />}
           </ProtectedRoute>
         } />
         
-        <Route path="/lesson" element={<ProtectedRoute user={user} isBanned={isBanned}><LessonView lesson={activeLesson} onComplete={handleLessonComplete} onExit={() => navigate('/dashboard')} /></ProtectedRoute>} />
-        <Route path="/course-catalog" element={<ProtectedRoute user={user} isBanned={isBanned}><CourseCatalog username={user} onNavigate={(v) => navigate(`/${v}`)} /></ProtectedRoute>} />
-        <Route path="/stats" element={<ProtectedRoute user={user} isBanned={isBanned}><Stats username={user} onNavigate={(v) => navigate(`/${v}`)} refreshTrigger={refreshTrigger} /></ProtectedRoute>} />
+        {/* ✅ INDIVIDUAL PAGE ROUTES (The fix for your menu) */}
         <Route path="/profile" element={<ProtectedRoute user={user} isBanned={isBanned}><Profile onNavigate={(v) => navigate(`/${v}`)} onUpdateProfile={setUser} /></ProtectedRoute>} />
         <Route path="/forum" element={<ProtectedRoute user={user} isBanned={isBanned}><Forum username={user} avatar={avatar} onNavigate={(v) => navigate(`/${v}`)} /></ProtectedRoute>} />
+        <Route path="/course-catalog" element={<ProtectedRoute user={user} isBanned={isBanned}><CourseCatalog username={user} onNavigate={(v) => navigate(`/${v}`)} /></ProtectedRoute>} />
+        <Route path="/stats" element={<ProtectedRoute user={user} isBanned={isBanned}><Stats username={user} onNavigate={(v) => navigate(`/${v}`)} refreshTrigger={refreshTrigger} /></ProtectedRoute>} />
         <Route path="/hall-of-fame" element={<ProtectedRoute user={user} isBanned={isBanned}><HallOfFame username={user} onNavigate={(v) => navigate(`/${v}`)} onOpenChat={(f) => setActiveChatFriend(f)} /></ProtectedRoute>} />
-        <Route path="/directory" element={<ProtectedRoute user={user} isBanned={isBanned}><StudentDirectory currentUsername={user} onNavigate={(v) => navigate(`/${v}`)} /></ProtectedRoute>} />
-        <Route path="/credits" element={<Credits onNavigate={(v) => navigate(`/${v}`)} />} />
+        <Route path="/lesson" element={<ProtectedRoute user={user} isBanned={isBanned}><LessonView lesson={activeLesson} onComplete={handleLessonComplete} onExit={() => navigate('/dashboard')} /></ProtectedRoute>} />
+        
         <Route path="/banned" element={<Banned onLogout={handleLogout} />} />
-        <Route path="*" element={<Navigate to={user ? "/dashboard" : "/login"} replace />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>
-      {activeChatFriend && currentId && <ChatBox currentUserId={currentId} friend={activeChatFriend} onClose={() => setActiveChatFriend(null)} />}
+      {activeChatFriend && currentId && !isBanned && <ChatBox currentUserId={currentId} friend={activeChatFriend} onClose={() => setActiveChatFriend(null)} />}
     </>
   );
 }
