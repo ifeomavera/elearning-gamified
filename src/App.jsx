@@ -17,14 +17,14 @@ import HallOfFame from './pages/HallOfFame';
 import CourseCatalog from './pages/CourseCatalog';
 import StudentDirectory from './pages/StudentDirectory';
 import ChatBox from './components/ChatBox'; 
-import Banned from './pages/Banned'; // ✅ IMPORTED BANNED SCREEN
+import Banned from './pages/Banned'; 
 import { Toaster, toast } from 'react-hot-toast';
 import axios from 'axios';
 
 // ✅ UPGRADED: ProtectedRoute now checks for Bans and intercepts navigation
 const ProtectedRoute = ({ user, isBanned, children }) => {
   if (!user) return <Navigate to="/login" replace />;
-  if (isBanned) return <Navigate to="/banned" replace />; // The Interceptor
+  if (isBanned) return <Navigate to="/banned" replace />; 
   return children;
 };
 
@@ -44,7 +44,6 @@ function App() {
     return savedRole ? savedRole.toLowerCase() : 'scholar';
   }); 
 
-  // ✅ ADDED: State to track if the current user is locked out
   const [isBanned, setIsBanned] = useState(() => localStorage.getItem('isBanned') === 'true');
 
   const [avatar, setAvatar] = useState(() => localStorage.getItem('userAvatar') || "👨‍💻");
@@ -85,7 +84,6 @@ function App() {
 
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
-  // ✅ UPGRADED: handleLogin now accepts a 4th parameter (userIsBanned)
   const handleLogin = (username, userRoleFromDB, userId, userIsBanned = false) => {
     if (!userId || userId === 'undefined') {
       console.error("Critical Auth Error: Missing User ID in handshake.");
@@ -97,7 +95,7 @@ function App() {
     setUser(username);
     setCurrentId(userId); 
     setRole(normalizedRole);
-    setIsBanned(userIsBanned); // Save ban status to state
+    setIsBanned(userIsBanned); 
     
     const currentAvatar = localStorage.getItem('userAvatar') || "👨‍💻";
     setAvatar(currentAvatar);
@@ -106,7 +104,7 @@ function App() {
     localStorage.setItem('userId', userId);
     localStorage.setItem('currentRole', normalizedRole);
     localStorage.setItem('userAvatar', currentAvatar);
-    localStorage.setItem('isBanned', userIsBanned); // Save ban status to storage
+    localStorage.setItem('isBanned', userIsBanned); 
     
     if (userIsBanned) {
       toast.error("Account access is restricted.");
@@ -121,7 +119,7 @@ function App() {
     setUser(null);
     setCurrentId(null);
     setRole('scholar');
-    setIsBanned(false); // Reset ban status on logout
+    setIsBanned(false); 
     setActiveChatFriend(null);
     localStorage.clear();
     navigate('/login');
@@ -140,7 +138,7 @@ function App() {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       await axios.put(`${apiUrl}/api/users/${user}/progress`, {
         xpEarned: earnedXP,
-        courseId: activeLesson.id
+        courseId: activeLesson._id // ✅ FIXED: Changed .id to ._id for MongoDB sync
       });
       toast.success(`Milestone Cleared! +${earnedXP} XP`, { id: toastId });
       navigate('/dashboard');
@@ -175,7 +173,7 @@ function App() {
           user && isBanned ? <Banned onLogout={handleLogout} /> : <Navigate to="/dashboard" replace />
         } />
 
-        {/* ✅ PROTECTED ROUTES: Now passing isBanned to all of them */}
+        {/* ✅ PROTECTED ROUTES */}
         <Route path="/dashboard" element={
           <ProtectedRoute user={user} isBanned={isBanned}>
             {(role === 'admin' || role === 'instructor') ? (

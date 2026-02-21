@@ -1,33 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaArrowLeft, FaBookOpen, FaPlus, FaCheck, FaSpinner, FaSearch, FaRegFrown, FaTrophy } from 'react-icons/fa';
-
-const ALL_COURSES = [
-  { id: 1, title: "Intro to Software Engineering", module: "Module 1", xp: 50, description: "Learn the foundational principles of the software development lifecycle." },
-  { id: 2, title: "Requirement Gathering", module: "Module 2", xp: 100, description: "Master the art of translating client needs into technical specifications." },
-  { id: 3, title: "Gamification Logic", module: "Module 3", xp: 150, description: "Design scalable reward systems, XP algorithms, and engagement loops." },
-];
+import { toast } from 'react-hot-toast';
 
 const CourseCatalog = ({ username, onNavigate }) => {
+  const [courses, setCourses] = useState([]); // ✅ Replaces ALL_COURSES array
   const [enrolling, setEnrolling] = useState(null);
   const [enrolledIds, setEnrolledIds] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [loading, setLoading] = useState(true); // ✅ Added loading state
+  const [loading, setLoading] = useState(true);
 
-  // ✅ 1. Fetch current enrollments when the catalog opens
+  // ✅ 1. Fetch dynamic courses AND user enrollments from the database
   useEffect(() => {
-    const fetchEnrollments = async () => {
+    const fetchData = async () => {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-        const res = await axios.get(`${apiUrl}/api/users/${username}`);
-        setEnrolledIds(res.data.enrolledCourses || []);
+        
+        // Fetch both the catalog and the user's current profile
+        const [coursesRes, userRes] = await Promise.all([
+          axios.get(`${apiUrl}/api/courses`),
+          axios.get(`${apiUrl}/api/users/${username}`)
+        ]);
+
+        setCourses(coursesRes.data);
+        setEnrolledIds(userRes.data.enrolledCourses || []);
       } catch (err) {
-        console.error("Failed to fetch user data", err);
+        console.error("Failed to fetch catalog data", err);
+        toast.error("Cloud catalog offline.");
       } finally {
         setLoading(false);
       }
     };
-    fetchEnrollments();
+    fetchData();
   }, [username]);
 
   const handleEnroll = async (courseId) => {
@@ -36,8 +40,9 @@ const CourseCatalog = ({ username, onNavigate }) => {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       await axios.put(`${apiUrl}/api/users/${username}/enroll`, { courseId });
       
-      // Add the ID to state so it instantly vanishes from the catalog
+      // Add the MongoDB _id to state so it vanishes from the catalog
       setEnrolledIds([...enrolledIds, String(courseId)]);
+      toast.success("Successfully enrolled!");
       
       setTimeout(() => {
         onNavigate('dashboard');
@@ -45,24 +50,20 @@ const CourseCatalog = ({ username, onNavigate }) => {
 
     } catch (err) {
       console.error("Enrollment failed:", err);
-      if (err.response?.status === 400) {
-        setEnrolledIds([...enrolledIds, String(courseId)]);
-        setTimeout(() => onNavigate('dashboard'), 800);
-      }
+      toast.error(err.response?.data || "Enrollment failed.");
     } finally {
       setEnrolling(null);
     }
   };
 
-  // ✅ 2. The Smart Filter Engine
+  // ✅ 2. The Smart Filter Engine (Using MongoDB _id)
   // First, remove courses the user is already enrolled in.
-  const availableCourses = ALL_COURSES.filter(course => !enrolledIds.includes(String(course.id)));
+  const availableCourses = courses.filter(course => !enrolledIds.includes(String(course._id)));
   
   // Then, apply the search bar filter to what's left.
   const filteredCourses = availableCourses.filter(course => 
-    course.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    course.module.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    course.description.toLowerCase().includes(searchTerm.toLowerCase())
+    course.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    course.module?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading) {
@@ -130,7 +131,7 @@ const CourseCatalog = ({ username, onNavigate }) => {
         {/* Course List & Dynamic Empty States */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {availableCourses.length === 0 ? (
-            /* ✅ 3. Mastered Everything UI */
+            /* Mastered Everything UI */
             <div style={{ textAlign: 'center', padding: '60px 20px', background: 'var(--card-border)', borderRadius: '20px', border: '1px dashed var(--accent-color)' }}>
               <FaTrophy size={50} color="#f1c40f" style={{ marginBottom: '15px' }} />
               <h3 style={{ margin: '0 0 10px 0', color: 'var(--text-primary)', fontSize: '20px' }}>You've enrolled in everything!</h3>
@@ -141,10 +142,10 @@ const CourseCatalog = ({ username, onNavigate }) => {
             </div>
           ) : filteredCourses.length > 0 ? (
             filteredCourses.map(course => {
-              const isEnrolling = enrolling === course.id;
+              const isEnrolling = enrolling === course._id; // ✅ Changed to MongoDB _id
 
               return (
-                <div key={course.id} className="glass-card" style={{ 
+                <div key={course._id} className="glass-card" style={{ 
                   padding: '25px', borderRadius: '20px', background: 'var(--bg-body)', 
                   border: '1px solid var(--card-border)', boxShadow: '0 4px 15px rgba(0,0,0,0.02)',
                   display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '20px'
@@ -155,12 +156,12 @@ const CourseCatalog = ({ username, onNavigate }) => {
                     </span>
                     <h2 style={{ margin: '5px 0', fontSize: '18px', color: 'var(--text-primary)' }}>{course.title}</h2>
                     <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
-                      {course.description}
+                      Master the foundational concepts and practical applications of this subject.
                     </p>
                   </div>
                   
                   <button 
-                    onClick={() => handleEnroll(course.id)}
+                    onClick={() => handleEnroll(course._id)} // ✅ Changed to MongoDB _id
                     disabled={isEnrolling}
                     style={{ 
                       minWidth: '110px', padding: '12px 20px', borderRadius: '12px', border: 'none',

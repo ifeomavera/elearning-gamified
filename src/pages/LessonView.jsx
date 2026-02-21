@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { FaArrowLeft, FaForward } from 'react-icons/fa';
 import confetti from 'canvas-confetti';
-import AdaptiveQuiz from '../components/AdaptiveQuiz'; // ✅ AI ENGINE INTEGRATED
+import AdaptiveQuiz from '../components/AdaptiveQuiz'; 
 
 const LessonView = ({ lesson, onComplete, onExit }) => {
   const [step, setStep] = useState('video'); 
@@ -9,8 +9,7 @@ const LessonView = ({ lesson, onComplete, onExit }) => {
 
   // ✅ HANDLE AI QUIZ COMPLETION
   const handleQuizComplete = (result) => {
-    // result contains { score, total } from the AdaptiveQuiz component
-    const earnedXP = result.score; // XP is now dynamically based on adaptive difficulty!
+    const earnedXP = result.score; 
     setFinalXP(earnedXP);
     
     // Trigger the victory screen
@@ -18,11 +17,10 @@ const LessonView = ({ lesson, onComplete, onExit }) => {
     confetti({ 
       particleCount: 150, 
       spread: 100,
-      colors: ['#6c5ce7', '#a29bfe', '#00b894'] // Custom brand colors
+      colors: ['#6c5ce7', '#a29bfe', '#00b894'] 
     });
     
-    // Fire the completion event back to App.jsx after a brief delay
-    // This triggers the axios.put sync we fixed in your App.jsx earlier
+    // Fire completion back to App.jsx after victory pause
     setTimeout(() => onComplete(earnedXP), 2500); 
   };
 
@@ -72,8 +70,8 @@ const LessonView = ({ lesson, onComplete, onExit }) => {
             <button onClick={() => setStep('quiz')} style={{ 
                 width: '100%', padding: '18px', fontSize: '18px', borderRadius: '15px', 
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-                background: 'var(--accent-color)', color: 'white', border: 'none', 
-                fontWeight: 'bold', cursor: 'pointer', transition: 'all 0.3s ease',
+                background: '#6c5ce7', color: 'white', border: 'none', 
+                fontWeight: '900', cursor: 'pointer', transition: 'all 0.3s ease',
                 boxShadow: '0 10px 20px rgba(108, 92, 231, 0.3)'
             }} onMouseOver={e => {
               e.currentTarget.style.transform = 'translateY(-3px)';
@@ -90,8 +88,8 @@ const LessonView = ({ lesson, onComplete, onExit }) => {
         {/* --- STEP 2: THE AI ADAPTIVE QUIZ --- */}
         {step === 'quiz' && (
           <div style={{ width: '100%', maxWidth: '800px' }}>
-            {/* Formatted lessonId provides context to the AI engine for question generation */}
-            <AdaptiveQuiz lessonId={`lesson-00${lesson.id}`} onComplete={handleQuizComplete} />
+            {/* ✅ FIXED: Using lesson._id for MongoDB compatibility */}
+            <AdaptiveQuiz lessonId={`lesson-00${lesson._id}`} onComplete={handleQuizComplete} />
           </div>
         )}
 
