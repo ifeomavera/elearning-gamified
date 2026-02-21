@@ -1,88 +1,47 @@
 import React from 'react';
-import { FaBolt, FaCircle } from 'react-icons/fa';
+import { FaBolt, FaCircle, FaGraduationCap, FaTrophy } from 'react-icons/fa';
 
 const ActivityFeed = ({ activities }) => {
   return (
     <div className="glass-card" style={{ 
-      padding: '20px', 
-      borderRadius: '20px', 
-      background: 'rgba(255, 255, 255, 0.03)', 
-      border: '1px solid var(--card-border)',
-      height: 'fit-content'
+      padding: '18px', borderRadius: '24px', background: 'rgba(255, 255, 255, 0.02)', 
+      border: '1px solid var(--card-border)', display: 'flex', flexDirection: 'column',
+      maxHeight: '400px' // ✅ FIX: Hard cap on height to prevent the "long feed"
     }}>
       <style>{`
+        .feed-container { overflow-y: auto; padding-right: 8px; flex: 1; }
+        .feed-container::-webkit-scrollbar { width: 4px; }
+        .feed-container::-webkit-scrollbar-thumb { background: var(--accent-color); borderRadius: 10px; }
         .activity-card {
-          padding: 12px;
-          border-radius: 12px;
-          background: rgba(255, 255, 255, 0.02);
-          border: 1px solid rgba(255, 255, 255, 0.05);
-          margin-bottom: 10px;
-          transition: all 0.3s ease;
-          display: flex;
-          align-items: center;
-          gap: 12px;
+          padding: 10px; border-radius: 12px; background: rgba(255, 255, 255, 0.02);
+          margin-bottom: 8px; display: flex; align-items: center; gap: 10px; transition: 0.2s;
         }
-        .activity-card:hover {
-          background: rgba(255, 255, 255, 0.05);
-          transform: translateX(5px);
-          border-color: var(--accent-color);
-        }
-        .status-pulse {
-          animation: pulse-red 2s infinite;
-          font-size: 8px;
-        }
-        @keyframes pulse-red {
-          0% { opacity: 0.4; }
-          50% { opacity: 1; }
-          100% { opacity: 0.4; }
-        }
+        .activity-card:hover { background: rgba(108, 92, 231, 0.08); transform: translateX(3px); }
       `}</style>
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '20px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <FaBolt color="#f1c40f" />
-          <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '16px', fontWeight: '800' }}>Live Activity</h3>
-        </div>
-        <div style={{ fontSize: '10px', color: 'var(--accent-color)', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>
-          Real-time
-        </div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '15px' }}>
+        <h3 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '14px', fontWeight: '800' }}>LIVE FEED</h3>
+        <div style={{ fontSize: '9px', color: 'var(--accent-color)', fontWeight: '900', textTransform: 'uppercase' }}>Real-time</div>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column' }}>
+      <div className="feed-container">
         {activities.length > 0 ? (
           activities.map((act, index) => (
             <div key={index} className="activity-card">
-              <div style={{ 
-                fontSize: '22px', 
-                background: 'rgba(255,255,255,0.05)', 
-                width: '40px', height: '40px', 
-                display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                borderRadius: '10px' 
-              }}>
-                {act.avatar || "👨‍💻"}
+              <div style={{ fontSize: '18px', background: 'var(--bg-body)', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '10px' }}>
+                {act.detail.includes('XP') ? <FaGraduationCap size={14} color="var(--accent-color)" /> : (act.detail.includes('Badge') ? <FaTrophy size={14} color="#f1c40f" /> : "👨‍💻")}
               </div>
-              
-              <div style={{ flex: 1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <span style={{ color: 'var(--text-primary)', fontWeight: '700', fontSize: '13px' }}>
-                    {act.username}
-                  </span>
-                  <span style={{ fontSize: '10px', color: 'var(--text-secondary)', opacity: 0.7 }}>
-                    {act.timestamp ? new Date(act.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
-                  </span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                   <span style={{ color: 'var(--text-primary)', fontWeight: '800', fontSize: '12px' }}>{act.username}</span>
+                   <span style={{ fontSize: '9px', color: 'var(--text-secondary)' }}>{act.timestamp ? new Date(act.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Now'}</span>
                 </div>
-                <p style={{ margin: '2px 0 0 0', fontSize: '11px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
-                  {act.detail}
-                </p>
+                <p style={{ margin: 0, fontSize: '10px', color: 'var(--text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{act.detail}</p>
               </div>
-
-              <FaCircle className="status-pulse" color={act.detail.includes('Badge') ? '#f1c40f' : 'var(--accent-color)'} />
             </div>
           ))
         ) : (
-          <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '13px', padding: '20px' }}>
-            Waiting for mission data...
-          </p>
+          <p style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '12px' }}>Awaiting data...</p>
         )}
       </div>
     </div>
