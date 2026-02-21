@@ -47,6 +47,7 @@ function App() {
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
   const handleLogin = (username, userRoleFromDB, userId, userIsBanned = false) => {
+    // MOBILE LOGIN FIX: Force lowercase and trim
     const safeUsername = String(username).toLowerCase().trim();
     const normalizedRole = userRoleFromDB ? String(userRoleFromDB).toLowerCase() : 'scholar';
 
@@ -60,12 +61,7 @@ function App() {
     localStorage.setItem('currentRole', normalizedRole);
     localStorage.setItem('isBanned', userIsBanned); 
     
-    if (userIsBanned) {
-      navigate('/banned');
-    } else {
-      toast.success(`Access Granted, ${safeUsername}!`);
-      navigate('/dashboard');
-    }
+    if (userIsBanned) { navigate('/banned'); } else { navigate('/dashboard'); }
   };
 
   const handleLogout = () => {
@@ -84,9 +80,7 @@ function App() {
       setRefreshTrigger(prev => prev + 1);
       toast.success(`Milestone Cleared! +${earnedXP} XP`, { id: toastId });
       navigate('/dashboard');
-    } catch (err) {
-      toast.error("Cloud sync failed.", { id: toastId });
-    }
+    } catch (err) { toast.error("Cloud sync failed.", { id: toastId }); }
   };
 
   return (
@@ -96,7 +90,6 @@ function App() {
         <Route path="/login" element={<Login onLogin={handleLogin} onNavigate={(v) => navigate(`/${v}`)} />} />
         <Route path="/register" element={<Register onSignUp={(n, id, r, b) => handleLogin(n, r, id, b)} onNavigate={(v) => navigate(`/${v}`)} />} />
         
-        {/* ✅ DASHBOARD ROUTE */}
         <Route path="/dashboard" element={
           <ProtectedRoute user={user} isBanned={isBanned}>
             {role === 'admin' ? <AdminDashboard onLogout={handleLogout} /> : 
@@ -110,14 +103,12 @@ function App() {
           </ProtectedRoute>
         } />
         
-        {/* ✅ INDIVIDUAL PAGE ROUTES (The fix for your menu) */}
         <Route path="/profile" element={<ProtectedRoute user={user} isBanned={isBanned}><Profile onNavigate={(v) => navigate(`/${v}`)} onUpdateProfile={setUser} /></ProtectedRoute>} />
         <Route path="/forum" element={<ProtectedRoute user={user} isBanned={isBanned}><Forum username={user} avatar={avatar} onNavigate={(v) => navigate(`/${v}`)} /></ProtectedRoute>} />
         <Route path="/course-catalog" element={<ProtectedRoute user={user} isBanned={isBanned}><CourseCatalog username={user} onNavigate={(v) => navigate(`/${v}`)} /></ProtectedRoute>} />
         <Route path="/stats" element={<ProtectedRoute user={user} isBanned={isBanned}><Stats username={user} onNavigate={(v) => navigate(`/${v}`)} refreshTrigger={refreshTrigger} /></ProtectedRoute>} />
         <Route path="/hall-of-fame" element={<ProtectedRoute user={user} isBanned={isBanned}><HallOfFame username={user} onNavigate={(v) => navigate(`/${v}`)} onOpenChat={(f) => setActiveChatFriend(f)} /></ProtectedRoute>} />
         <Route path="/lesson" element={<ProtectedRoute user={user} isBanned={isBanned}><LessonView lesson={activeLesson} onComplete={handleLessonComplete} onExit={() => navigate('/dashboard')} /></ProtectedRoute>} />
-        
         <Route path="/banned" element={<Banned onLogout={handleLogout} />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

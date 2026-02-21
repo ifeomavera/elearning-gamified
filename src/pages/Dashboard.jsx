@@ -67,7 +67,7 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
       `}</style>
 
       {/* HEADER */}
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', maxWidth: '1600px', width: '100%', margin: '0 auto 25px auto' }}>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', maxWidth: '1600px', margin: '0 auto 25px auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
           <div className="glass-card" onClick={() => onNavigate('profile')} style={{ cursor: 'pointer', width: '55px', height: '55px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px' }}>{avatar}</div>
           <div><h1 style={{ margin: 0, fontSize: '20px', color: 'var(--text-primary)', fontWeight: '900' }}>{username}</h1><p style={{ margin: 0, fontSize: '12px', color: 'var(--accent-color)', fontWeight: '800' }}>Independent Scholar</p></div>
@@ -91,6 +91,7 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: 'var(--text-primary)', marginTop: '12px' }}><span>Accuracy</span><b>🎯 {stats.accuracy}%</b></div>
           </div>
           <h3 style={{ fontSize: '15px', color: 'var(--text-primary)', marginBottom: '15px', fontWeight: '900' }}>Milestone Badges</h3>
+          {/* ✅ FULL BADGE LIST FIX */}
           {userData?.badges?.map((b, i) => <BadgeCard key={i} name={b} isUnlocked={true} />)}
         </div>
 
@@ -118,13 +119,13 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
         </div>
       </div>
 
-      {/* ✅ SIDEBAR (Fixed and Working) */}
+      {/* SIDEBAR NAVIGATION */}
       <div onClick={() => setIsMenuOpen(false)} style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', zIndex: 9998, opacity: isMenuOpen ? 1 : 0, pointerEvents: isMenuOpen ? 'all' : 'none', transition: '0.4s' }} />
       <div style={{ position: 'fixed', top: 0, right: isMenuOpen ? '0' : '-100%', width: '340px', height: '100%', zIndex: 9999, transition: '0.4s cubic-bezier(0.16, 1, 0.3, 1)', background: 'var(--bg-body)', borderLeft: '1px solid var(--card-border)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '25px', display: 'flex', justifyContent: 'flex-end' }}><button onClick={() => setIsMenuOpen(false)} style={{ background: 'transparent', border: '1px solid var(--card-border)', color: 'var(--text-primary)', width: '45px', height: '45px', borderRadius: '50%', cursor: 'pointer' }}><FaTimes size={20} /></button></div>
         <div style={{ padding: '0 40px 40px 40px', textAlign: 'center', borderBottom: '1px solid var(--card-border)' }}><div style={{ fontSize: '70px', marginBottom: '20px' }}>{avatar}</div><h2 style={{ color: 'var(--text-primary)', margin: 0, fontWeight: '900' }}>{username}</h2><p style={{ fontSize: '12px', color: 'var(--accent-color)', fontWeight: '900', textTransform: 'uppercase' }}>Academic Scholar</p></div>
         <div style={{ padding: '30px 0', display: 'flex', flexDirection: 'column', height: '100%' }}>
-          {/* ✅ Fixed Link Strings to match App.jsx Routes */}
+          {/* Menu items are fixed and pointing to routes in App.jsx */}
           <button onClick={() => { onNavigate('profile'); setIsMenuOpen(false); }} className="vici-menu-item"><FaUser opacity={0.6} /> Profile Settings</button>
           <button onClick={() => { onNavigate('course-catalog'); setIsMenuOpen(false); }} className="vici-menu-item"><FaBookOpen opacity={0.6} /> Course Catalog</button>
           <button onClick={() => { onNavigate('forum'); setIsMenuOpen(false); }} className="vici-menu-item"><FaUsers opacity={0.6} /> Community</button>
