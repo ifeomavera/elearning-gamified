@@ -21,7 +21,7 @@ import Banned from './pages/Banned';
 import { Toaster, toast } from 'react-hot-toast';
 import axios from 'axios';
 
-// ✅ AUTH GUARD: Bulletproof protection for routes
+// ProtectedRoute checks for Bans and intercepts navigation
 const ProtectedRoute = ({ user, isBanned, children }) => {
   if (!user) return <Navigate to="/login" replace />;
   if (isBanned) return <Navigate to="/banned" replace />; 
@@ -32,21 +32,15 @@ function App() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // AUTHENTICATION STATE
   const [user, setUser] = useState(() => localStorage.getItem('currentUser'));
-  const [currentId, setCurrentId] = useState(() => {
-    const savedId = localStorage.getItem('userId');
-    return (savedId && savedId !== 'undefined' && savedId !== 'null') ? savedId : null;
-  }); 
+  const [currentId, setCurrentId] = useState(() => localStorage.getItem('userId')); 
   const [role, setRole] = useState(() => localStorage.getItem('currentRole')?.toLowerCase() || 'scholar'); 
   const [isBanned, setIsBanned] = useState(() => localStorage.getItem('isBanned') === 'true');
   const [avatar, setAvatar] = useState(() => localStorage.getItem('userAvatar') || "👨‍💻");
-
-  // SYSTEM STATE
   const [activeChatFriend, setActiveChatFriend] = useState(null); 
   const [theme, setTheme] = useState(() => localStorage.getItem('appTheme') || 'light');
   const [activeLesson, setActiveLesson] = useState(null);
-  const [refreshTrigger, setRefreshTrigger] = useState(0); // ✅ Crucial for real-time dashboard sync
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -55,84 +49,87 @@ function App() {
 
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
-  // ✅ SYNC LOGIC: Triggers re-fetch when external data changes
-  const handleEnrollSuccess = () => setRefreshTrigger(prev => prev + 1);
-
   const handleLogin = (username, userRoleFromDB, userId, userIsBanned = false) => {
-    if (!userId || userId === 'undefined') return toast.error("Handshake failed.");
+    // ✅ MOBILE FIX: Normalize username to lowercase to prevent 500 errors
+    const safeUsername = String(username).toLowerCase().trim();
     const normalizedRole = userRoleFromDB ? String(userRoleFromDB).toLowerCase() : 'scholar';
-    setUser(username); setCurrentId(userId); setRole(normalizedRole); setIsBanned(userIsBanned); 
-    localStorage.setItem('currentUser', username); localStorage.setItem('userId', userId);
-    localStorage.setItem('currentRole', normalizedRole); localStorage.setItem('isBanned', userIsBanned); 
-    if (userIsBanned) { navigate('/banned'); } else { toast.success(`Welcome, ${username}!`); navigate('/dashboard'); }
+
+    setUser(safeUsername);
+    setCurrentId(userId); 
+    setRole(normalizedRole);
+    setIsBanned(userIsBanned); 
+    
+    localStorage.setItem('currentUser', safeUsername);
+    localStorage.setItem('userId', userId);
+    localStorage.setItem('currentRole', normalizedRole);
+    localStorage.setItem('isBanned', userIsBanned); 
+    
+    if (userIsBanned) {
+      navigate('/banned');
+    } else {
+      toast.success(`Access Granted, ${safeUsername}!`);
+      navigate('/dashboard');
+    }
   };
 
   const handleLogout = () => {
     setUser(null); setCurrentId(null); setRole('scholar'); setIsBanned(false); 
     setActiveChatFriend(null); localStorage.clear(); navigate('/login');
-    toast.success("Session terminated safely");
   };
-
-  const handleStartLesson = (lesson) => { setActiveLesson(lesson); navigate('/lesson'); };
 
   const handleLessonComplete = async (earnedXP) => {
     if (!activeLesson) return;
-    const toastId = toast.loading("Finalizing Academic Progress...");
+    const toastId = toast.loading("Syncing academic record...");
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      await axios.put(`${apiUrl}/api/users/${user}/progress`, { xpEarned: earnedXP, courseId: activeLesson._id });
-      setRefreshTrigger(prev => prev + 1); // ✅ Immediate Dashboard refresh
-      toast.success(`Success! +${earnedXP} XP Earned`, { id: toastId });
+      await axios.put(`${apiUrl}/api/users/${user}/progress`, {
+        xpEarned: earnedXP,
+        courseId: activeLesson._id 
+      });
+      // ✅ Trigger Dashboard Refresh
+      setRefreshTrigger(prev => prev + 1);
+      toast.success(`Milestone Cleared! +${earnedXP} XP`, { id: toastId });
       navigate('/dashboard');
-    } catch (err) { toast.error("Sync failed.", { id: toastId }); }
+    } catch (err) {
+      toast.error("Cloud sync failed.", { id: toastId });
+    }
   };
-
-  const openChat = (friend) => { if (friend && (friend._id || friend.id)) setActiveChatFriend(friend); };
 
   return (
     <>
-      <Toaster position="top-center" toastOptions={{ duration: 4000 }} />
+      <Toaster position="top-center" />
       <Routes>
-        {/* PUBLIC ACCESS */}
         <Route path="/login" element={<Login onLogin={handleLogin} onNavigate={(v) => navigate(`/${v}`)} />} />
-        <Route path="/register" element={<Register onSignUp={(n, id, r, b) => handleLogin(n, r, id, b)} onNavigate={(v) => navigate(`/${v}`)} />} />
-        <Route path="/forgot-password" element={<ForgotPassword onNavigate={(v) => navigate(`/${v}`)} />} />
-        <Route path="/reset-password/:resetToken" element={<ResetPassword />} />
-        <Route path="/credits" element={<Credits onNavigate={(v) => navigate(`/${v}`)} />} />
-        <Route path="/banned" element={user && isBanned ? <Banned onLogout={handleLogout} /> : <Navigate to="/dashboard" replace />} />
-
-        {/* CORE PROTECTED ENGINE */}
+        <Route path="/register" element={<Register onSignUp={(n, i, r, b) => handleLogin(n, r, id, b)} onNavigate={(v) => navigate(`/${v}`)} />} />
+        
         <Route path="/dashboard" element={
           <ProtectedRoute user={user} isBanned={isBanned}>
-            {(role === 'admin' || role === 'instructor') ? (
-              <AdminDashboard onLogout={handleLogout} toggleTheme={toggleTheme} currentTheme={theme} role={role} onOpenChat={openChat} />
+            {role === 'admin' ? (
+              <AdminDashboard onLogout={handleLogout} toggleTheme={toggleTheme} currentTheme={theme} role={role} />
             ) : (
               <Dashboard 
-                username={user} avatar={avatar} onLogout={handleLogout} onNavigate={(v) => navigate(`/${v}`)} 
-                toggleTheme={toggleTheme} currentTheme={theme} onStartLesson={handleStartLesson}
-                onOpenChat={openChat} refreshTrigger={refreshTrigger} 
+                username={user} avatar={avatar} refreshTrigger={refreshTrigger}
+                onLogout={handleLogout} onNavigate={(v) => navigate(`/${v}`)} 
+                toggleTheme={toggleTheme} currentTheme={theme} 
+                onStartLesson={(l) => { setActiveLesson(l); navigate('/lesson'); }} 
+                onOpenChat={(f) => setActiveChatFriend(f)} 
               />
             )}
           </ProtectedRoute>
         } />
-
-        <Route path="/course-catalog" element={<ProtectedRoute user={user} isBanned={isBanned}><CourseCatalog username={user} onNavigate={(v) => navigate(`/${v}`)} onEnrollSuccess={handleEnrollSuccess} /></ProtectedRoute>} />
+        
         <Route path="/lesson" element={<ProtectedRoute user={user} isBanned={isBanned}><LessonView lesson={activeLesson} onComplete={handleLessonComplete} onExit={() => navigate('/dashboard')} /></ProtectedRoute>} />
+        <Route path="/course-catalog" element={<ProtectedRoute user={user} isBanned={isBanned}><CourseCatalog username={user} onNavigate={(v) => navigate(`/${v}`)} /></ProtectedRoute>} />
         <Route path="/stats" element={<ProtectedRoute user={user} isBanned={isBanned}><Stats username={user} onNavigate={(v) => navigate(`/${v}`)} refreshTrigger={refreshTrigger} /></ProtectedRoute>} />
-        <Route path="/hall-of-fame" element={<ProtectedRoute user={user} isBanned={isBanned}><HallOfFame username={user} onNavigate={(v) => navigate(`/${v}`)} onOpenChat={openChat} /></ProtectedRoute>} />
-        <Route path="/leaderboard" element={<ProtectedRoute user={user} isBanned={isBanned}><Leaderboard username={user} onNavigate={(v) => navigate(`/${v}`)} /></ProtectedRoute>} />
-        <Route path="/directory" element={<ProtectedRoute user={user} isBanned={isBanned}><StudentDirectory currentUsername={user} onNavigate={(v) => navigate(`/${v}`)} /></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute user={user} isBanned={isBanned}><Profile onNavigate={(v) => navigate(`/${v}`)} onUpdateProfile={setUser} /></ProtectedRoute>} />
         <Route path="/forum" element={<ProtectedRoute user={user} isBanned={isBanned}><Forum username={user} avatar={avatar} onNavigate={(v) => navigate(`/${v}`)} /></ProtectedRoute>} />
+        <Route path="/hall-of-fame" element={<ProtectedRoute user={user} isBanned={isBanned}><HallOfFame username={user} onNavigate={(v) => navigate(`/${v}`)} onOpenChat={(f) => setActiveChatFriend(f)} /></ProtectedRoute>} />
+        <Route path="/directory" element={<ProtectedRoute user={user} isBanned={isBanned}><StudentDirectory currentUsername={user} onNavigate={(v) => navigate(`/${v}`)} /></ProtectedRoute>} />
+        <Route path="/credits" element={<Credits onNavigate={(v) => navigate(`/${v}`)} />} />
+        <Route path="/banned" element={<Banned onLogout={handleLogout} />} />
         <Route path="*" element={<Navigate to={user ? "/dashboard" : "/login"} replace />} />
       </Routes>
-
-      {/* MESSENGER SYSTEM */}
-      {activeChatFriend && currentId && !isBanned && (
-        <div style={{ position: 'fixed', zIndex: 100000, bottom: 0, right: 0 }}>
-            <ChatBox currentUserId={currentId} friend={activeChatFriend} onClose={() => setActiveChatFriend(null)} />
-        </div>
-      )}
+      {activeChatFriend && currentId && <ChatBox currentUserId={currentId} friend={activeChatFriend} onClose={() => setActiveChatFriend(null)} />}
     </>
   );
 }
