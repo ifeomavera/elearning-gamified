@@ -21,7 +21,9 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const fetchUserData = async (isRefresh = false) => {
+    // Only show full-screen loader on initial mount
     if (!isRefresh && xp === 0) setLoading(true);
+    
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       const [userRes, statsRes, coursesRes, feedRes] = await Promise.all([
@@ -35,23 +37,53 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
       setXP(userRes.data.xp || 0);
       setLevel(userRes.data.level || 1);
       setStats(statsRes.data);
-      setActivities((feedRes.data || []).sort((a,b) => new Date(b.timestamp) - new Date(a.timestamp)));
+      
+      // ✅ LIVE FEED SORT: Checks both 'timestamp' and 'createdAt' for safety
+      const sortedFeed = (feedRes.data || []).sort((a, b) => {
+        const timeA = new Date(a.timestamp || a.createdAt);
+        const timeB = new Date(b.timestamp || b.createdAt);
+        return timeB - timeA;
+      });
+      setActivities(sortedFeed);
       
       const enrolled = coursesRes.data
         .filter(c => userRes.data.enrolledCourses?.includes(String(c._id)))
-        .map(c => ({ ...c, completed: userRes.data.completedCourses?.includes(String(c._id)) }));
+        .map(c => ({ 
+          ...c, 
+          completed: userRes.data.completedCourses?.includes(String(c._id)) 
+        }));
       setCourses(enrolled);
-    } catch (err) { console.error(err); } finally { setLoading(false); }
+    } catch (err) { 
+      console.error("Data sync failed:", err); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
-  useEffect(() => { fetchUserData(refreshTrigger > 0); }, [username, refreshTrigger]);
+  // ✅ Trigger fetch whenever username or refreshTrigger changes
+  useEffect(() => { 
+    fetchUserData(refreshTrigger > 0); 
+  }, [username, refreshTrigger]);
 
-  if (loading && xp === 0) return <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-body)', color: 'var(--text-primary)' }}>Synchronizing Academic Core...</div>;
+  if (loading && xp === 0) return (
+    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-body)', color: 'var(--text-primary)' }}>
+      Synchronizing Academic Core...
+    </div>
+  );
 
   return (
     <div style={{ width: '100%', minHeight: '100vh', padding: '15px', background: 'var(--bg-body)' }}>
       <style>{`
-        .dashboard-grid { display: grid; grid-template-columns: 300px 1fr 340px; gap: 25px; max-width: 1600px; width: 100%; margin: 0 auto; align-items: start; }
+        /* ✅ LAYOUT FIX: Ensures the center column fills space properly */
+        .dashboard-grid { 
+          display: grid; 
+          grid-template-columns: 300px 1fr 340px; 
+          gap: 25px; 
+          max-width: 1600px; 
+          width: 100%; 
+          margin: 0 auto; 
+          align-items: start; 
+        }
         .enroll-card {
           margin-top: 15px; border: 2.5px dashed var(--accent-color); padding: 40px 20px; 
           border-radius: 24px; color: var(--accent-color); cursor: pointer;
@@ -91,7 +123,6 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: 'var(--text-primary)', marginTop: '12px' }}><span>Accuracy</span><b>🎯 {stats.accuracy}%</b></div>
           </div>
           <h3 style={{ fontSize: '15px', color: 'var(--text-primary)', marginBottom: '15px', fontWeight: '900' }}>Milestone Badges</h3>
-          {/* ✅ FULL BADGE LIST FIX */}
           {userData?.badges?.map((b, i) => <BadgeCard key={i} name={b} isUnlocked={true} />)}
         </div>
 
@@ -115,6 +146,7 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
                </div>
              ))}
            </div>
+           {/* ✅ Real-Time Activity Component updated here */}
            <ActivityFeed activities={activities} />
         </div>
       </div>
@@ -125,7 +157,6 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
         <div style={{ padding: '25px', display: 'flex', justifyContent: 'flex-end' }}><button onClick={() => setIsMenuOpen(false)} style={{ background: 'transparent', border: '1px solid var(--card-border)', color: 'var(--text-primary)', width: '45px', height: '45px', borderRadius: '50%', cursor: 'pointer' }}><FaTimes size={20} /></button></div>
         <div style={{ padding: '0 40px 40px 40px', textAlign: 'center', borderBottom: '1px solid var(--card-border)' }}><div style={{ fontSize: '70px', marginBottom: '20px' }}>{avatar}</div><h2 style={{ color: 'var(--text-primary)', margin: 0, fontWeight: '900' }}>{username}</h2><p style={{ fontSize: '12px', color: 'var(--accent-color)', fontWeight: '900', textTransform: 'uppercase' }}>Academic Scholar</p></div>
         <div style={{ padding: '30px 0', display: 'flex', flexDirection: 'column', height: '100%' }}>
-          {/* Menu items are fixed and pointing to routes in App.jsx */}
           <button onClick={() => { onNavigate('profile'); setIsMenuOpen(false); }} className="vici-menu-item"><FaUser opacity={0.6} /> Profile Settings</button>
           <button onClick={() => { onNavigate('course-catalog'); setIsMenuOpen(false); }} className="vici-menu-item"><FaBookOpen opacity={0.6} /> Course Catalog</button>
           <button onClick={() => { onNavigate('forum'); setIsMenuOpen(false); }} className="vici-menu-item"><FaUsers opacity={0.6} /> Community</button>
