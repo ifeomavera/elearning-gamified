@@ -1,21 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
-import Leaderboard from './pages/Leaderboard';
-import Profile from './pages/Profile';
 import AdminDashboard from './pages/AdminDashboard';
-import NotFound from './pages/NotFound';
-import LessonView from './pages/LessonView';
+import Profile from './pages/Profile';
 import Forum from './pages/Forum';
 import Stats from './pages/Stats';
-import Credits from './pages/Credits';
-import HallOfFame from './pages/HallOfFame';
 import CourseCatalog from './pages/CourseCatalog';
-import StudentDirectory from './pages/StudentDirectory';
+import LessonView from './pages/LessonView';
 import ChatBox from './components/ChatBox'; 
 import Banned from './pages/Banned'; 
 import { Toaster, toast } from 'react-hot-toast';
@@ -47,8 +40,8 @@ function App() {
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
   const handleLogin = (username, userRoleFromDB, userId, userIsBanned = false) => {
-    // ✅ CRITICAL MOBILE FIX: Force lowercase and trim
-    const safeUsername = String(username).toLowerCase().trim();
+    // ✅ URL SAFETY FIX: Remove spaces so "KAY FLOCK" becomes "kayflock" for API calls
+    const safeUsername = String(username).replace(/\s+/g, '').toLowerCase().trim();
     const normalizedRole = userRoleFromDB ? String(userRoleFromDB).toLowerCase() : 'scholar';
 
     setUser(safeUsername);
@@ -61,25 +54,28 @@ function App() {
     localStorage.setItem('currentRole', normalizedRole);
     localStorage.setItem('isBanned', userIsBanned); 
     
-    if (userIsBanned) { navigate('/banned'); } 
-    else { toast.success(`Access Granted, ${safeUsername}!`); navigate('/dashboard'); }
+    if (userIsBanned) { 
+      navigate('/banned'); 
+    } else { 
+      toast.success(`Access Granted, ${safeUsername}`); 
+      navigate('/dashboard'); 
+    }
   };
 
   const handleLogout = () => {
     setUser(null); setCurrentId(null); localStorage.clear(); navigate('/login');
   };
 
-  // ✅ UPDATED: Accepts earnedXP and quizStats {total, correct}
   const handleLessonComplete = async (earnedXP, quizStats) => {
     if (!activeLesson) return;
-    const toastId = toast.loading("Recording academic performance...");
+    const toastId = toast.loading("Syncing academic record...");
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       await axios.put(`${apiUrl}/api/users/${user}/progress`, {
         xpEarned: earnedXP,
         courseId: activeLesson._id,
         courseTitle: activeLesson.title,
-        stats: quizStats // ✅ Dispatches real stats to the backend accuracy engine
+        stats: quizStats
       });
       setRefreshTrigger(prev => prev + 1);
       toast.success(`Milestone Cleared! +${earnedXP} XP`, { id: toastId });
@@ -93,14 +89,10 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login onLogin={handleLogin} onNavigate={(v) => navigate(`/${v}`)} />} />
         <Route path="/register" element={<Register onSignUp={(n, id, r, b) => handleLogin(n, r, id, b)} onNavigate={(v) => navigate(`/${v}`)} />} />
-        
         <Route path="/dashboard" element={
           <ProtectedRoute user={user} isBanned={isBanned}>
             {role === 'admin' ? (
-              <AdminDashboard 
-                onLogout={handleLogout} 
-                onOpenChat={(f) => setActiveChatFriend(f)} // ✅ FIX: Prevents crash in Admin
-              />
+              <AdminDashboard onLogout={handleLogout} onOpenChat={(f) => setActiveChatFriend(f)} />
             ) : (
               <Dashboard 
                 username={user} avatar={avatar} refreshTrigger={refreshTrigger}
@@ -112,12 +104,10 @@ function App() {
             )}
           </ProtectedRoute>
         } />
-        
         <Route path="/profile" element={<ProtectedRoute user={user} isBanned={isBanned}><Profile onNavigate={(v) => navigate(`/${v}`)} onUpdateProfile={setUser} /></ProtectedRoute>} />
         <Route path="/forum" element={<ProtectedRoute user={user} isBanned={isBanned}><Forum username={user} avatar={avatar} onNavigate={(v) => navigate(`/${v}`)} /></ProtectedRoute>} />
         <Route path="/course-catalog" element={<ProtectedRoute user={user} isBanned={isBanned}><CourseCatalog username={user} onNavigate={(v) => navigate(`/${v}`)} /></ProtectedRoute>} />
         <Route path="/stats" element={<ProtectedRoute user={user} isBanned={isBanned}><Stats username={user} onNavigate={(v) => navigate(`/${v}`)} refreshTrigger={refreshTrigger} /></ProtectedRoute>} />
-        <Route path="/hall-of-fame" element={<ProtectedRoute user={user} isBanned={isBanned}><HallOfFame username={user} onNavigate={(v) => navigate(`/${v}`)} onOpenChat={(f) => setActiveChatFriend(f)} /></ProtectedRoute>} />
         <Route path="/lesson" element={<ProtectedRoute user={user} isBanned={isBanned}><LessonView lesson={activeLesson} onComplete={handleLessonComplete} onExit={() => navigate('/dashboard')} /></ProtectedRoute>} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

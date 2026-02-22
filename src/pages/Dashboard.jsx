@@ -6,7 +6,7 @@ import ActivityFeed from '../components/ActivityFeed';
 import SocialInbox from '../components/SocialInbox'; 
 import { 
   FaBookOpen, FaPlus, FaChartLine, FaBars, FaCommentDots, 
-  FaUser, FaUsers, FaSignOutAlt, FaTimes, FaMoon, FaSun 
+  FaUser, FaUsers, FaSignOutAlt, FaTimes, FaMoon, FaSun, FaShieldAlt 
 } from 'react-icons/fa';
 import axios from 'axios';
 
@@ -22,11 +22,16 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
 
   const fetchUserData = async (isRefresh = false) => {
     if (!isRefresh && xp === 0) setLoading(true);
+    
+    // ✅ URL SAFETY FIX: Normalize "KAY FLOCK" to "kayflock" for the API call
+    // This prevents the 404 error caused by spaces in URLs
+    const cleanName = String(username).replace(/\s+/g, '').toLowerCase().trim();
+
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       const [userRes, statsRes, coursesRes, feedRes] = await Promise.all([
-        axios.get(`${apiUrl}/api/users/${username}`),
-        axios.get(`${apiUrl}/api/users/${username}/stats`),
+        axios.get(`${apiUrl}/api/users/${cleanName}`),
+        axios.get(`${apiUrl}/api/users/${cleanName}/stats`),
         axios.get(`${apiUrl}/api/courses`),
         axios.get(`${apiUrl}/api/users/activities`)
       ]);
@@ -73,7 +78,7 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
       <style>{`
         .dashboard-grid { 
           display: grid; 
-          grid-template-columns: 300px 1fr 340px; 
+          grid-template-columns: 320px 1fr 340px; 
           gap: 25px; 
           max-width: 1600px; 
           width: 100%; 
@@ -89,18 +94,23 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
         }
         .enroll-card:hover { background: rgba(108, 92, 231, 0.1); transform: translateY(-4px); }
         .vici-menu-item { display: flex; align-items: center; gap: 15px; width: 100%; padding: 15px 40px; background: transparent; border: none; color: var(--text-primary); font-size: 16px; font-weight: 700; cursor: pointer; transition: 0.2s; }
+        .vici-menu-item:hover { background: rgba(255,255,255,0.05); color: var(--accent-color); padding-left: 45px; }
+        .messenger-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); border-radius: 15px; margin-bottom: 10px; cursor: pointer; transition: 0.2s; }
+        .messenger-item:hover { border-color: var(--accent-color); background: rgba(108, 92, 231, 0.1); }
         @media (max-width: 1300px) { .dashboard-grid { grid-template-columns: 1fr 320px; } .achievements-col { display: none; } }
         @media (max-width: 800px) { .dashboard-grid { grid-template-columns: 1fr; } .social-col { order: 3; } }
       `}</style>
 
+      {/* HEADER */}
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', maxWidth: '1600px', margin: '0 auto 25px auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
           <div className="glass-card" onClick={() => onNavigate('profile')} style={{ cursor: 'pointer', width: '55px', height: '55px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px' }}>{avatar}</div>
-          <div><h1 style={{ margin: 0, fontSize: '20px', color: 'var(--text-primary)', fontWeight: '900' }}>{username}</h1><p style={{ margin: 0, fontSize: '12px', color: 'var(--accent-color)', fontWeight: '800' }}>Scholar</p></div>
+          <div><h1 style={{ margin: 0, fontSize: '20px', color: 'var(--text-primary)', fontWeight: '900' }}>{username}</h1><p style={{ margin: 0, fontSize: '12px', color: 'var(--accent-color)', fontWeight: '800' }}>Independent Scholar</p></div>
         </div>
         <button onClick={() => setIsMenuOpen(true)} className="glass-card" style={{ padding: '12px', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', borderRadius: '12px' }}><FaBars size={22} /></button>
       </header>
 
+      {/* PROGRESS BAR */}
       <div className="glass-card" style={{ padding: '25px', marginBottom: '30px', maxWidth: '1600px', margin: '0 auto 30px auto' }}>
         <XPBar currentXP={xp} level={level} />
         <div style={{ textAlign: 'right', marginTop: '12px' }}>
@@ -115,7 +125,7 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: 'var(--text-primary)' }}><span>Streak</span><b>🔥 {stats.streak} Days</b></div>
              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: 'var(--text-primary)', marginTop: '12px' }}><span>Accuracy</span><b>🎯 {stats.accuracy}%</b></div>
           </div>
-          <h3 style={{ fontSize: '15px', color: 'var(--text-primary)', marginBottom: '15px', fontWeight: '900' }}>Badges</h3>
+          <h3 style={{ fontSize: '15px', color: 'var(--text-primary)', marginBottom: '15px', fontWeight: '900' }}>Milestone Badges</h3>
           {userData?.badges?.map((b, i) => <BadgeCard key={i} name={b} isUnlocked={true} />)}
         </div>
 
@@ -132,9 +142,22 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
         <div className="social-col">
            <div className="glass-card" style={{ padding: '20px', marginBottom: '25px', border: '1.5px solid var(--accent-color)' }}>
              <h4 style={{ margin: '0 0 15px 0', fontSize: '15px', color: 'var(--text-primary)', fontWeight: '900' }}><FaCommentDots /> Messenger</h4>
+             
+             {/* ✅ ACADEMIC SUPPORT (ADMIN) FIX: Always visible for messages */}
+             <div onClick={() => onOpenChat({ username: 'Admin', role: 'admin', _id: 'admin_id' })} className="messenger-item" style={{ border: '1.5px solid #f1c40f' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <FaShieldAlt color="#f1c40f" size={20}/>
+                  <span style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: '800' }}>Academic Support</span>
+                </div>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#f1c40f' }}></div>
+             </div>
+
              {userData?.friends?.map(f => (
-               <div key={f._id} onClick={() => onOpenChat(f)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px', background: 'rgba(255,255,255,0.03)', borderRadius: '15px', marginBottom: '10px', cursor: 'pointer' }}>
-                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><span style={{ fontSize: '20px' }}>👨‍💻</span><span style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: '800' }}>{f.username}</span></div>
+               <div key={f._id} onClick={() => onOpenChat(f)} className="messenger-item">
+                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                   <span style={{ fontSize: '20px' }}>👨‍💻</span>
+                   <span style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: '800' }}>{f.username}</span>
+                 </div>
                  <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#2ecc71', boxShadow: '0 0 10px #2ecc71' }}></div>
                </div>
              ))}
@@ -143,10 +166,11 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
         </div>
       </div>
 
+      {/* SIDEBAR NAVIGATION */}
       <div onClick={() => setIsMenuOpen(false)} style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', zIndex: 9998, opacity: isMenuOpen ? 1 : 0, pointerEvents: isMenuOpen ? 'all' : 'none', transition: '0.4s' }} />
       <div style={{ position: 'fixed', top: 0, right: isMenuOpen ? '0' : '-100%', width: '340px', height: '100%', zIndex: 9999, transition: '0.4s cubic-bezier(0.16, 1, 0.3, 1)', background: 'var(--bg-body)', borderLeft: '1px solid var(--card-border)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '25px', display: 'flex', justifyContent: 'flex-end' }}><button onClick={() => setIsMenuOpen(false)} style={{ background: 'transparent', border: '1px solid var(--card-border)', color: 'var(--text-primary)', width: '45px', height: '45px', borderRadius: '50%', cursor: 'pointer' }}><FaTimes size={20} /></button></div>
-        <div style={{ padding: '0 40px 40px 40px', textAlign: 'center', borderBottom: '1px solid var(--card-border)' }}><div style={{ fontSize: '70px', marginBottom: '20px' }}>{avatar}</div><h2 style={{ color: 'var(--text-primary)', margin: 0, fontWeight: '900' }}>{username}</h2><p style={{ fontSize: '12px', color: 'var(--accent-color)', fontWeight: '900', textTransform: 'uppercase' }}>Academic Scholar</p></div>
+        <div style={{ padding: '0 40px 40px 40px', textAlign: 'center', borderBottom: '1px solid var(--card-border)' }}><div style={{ fontSize: '70px', marginBottom: '20px' }}>{avatar}</div><h2 style={{ color: 'var(--text-primary)', margin: 0, fontWeight: '900' }}>{username}</h2></div>
         <div style={{ padding: '30px 0', display: 'flex', flexDirection: 'column', height: '100%' }}>
           <button onClick={() => { onNavigate('profile'); setIsMenuOpen(false); }} className="vici-menu-item"><FaUser opacity={0.6} /> Profile Settings</button>
           <button onClick={() => { onNavigate('course-catalog'); setIsMenuOpen(false); }} className="vici-menu-item"><FaBookOpen opacity={0.6} /> Course Catalog</button>
