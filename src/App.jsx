@@ -32,6 +32,34 @@ function App() {
   const [activeLesson, setActiveLesson] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
+  // ✅ SESSION SECURITY: Auto-logout after 30 minutes of inactivity
+  useEffect(() => {
+    if (!user) return;
+
+    const checkInactivity = () => {
+      const lastAction = localStorage.getItem('lastActionTime');
+      const now = Date.now();
+      const limit = 30 * 60 * 1000; // 30 Minutes
+
+      if (lastAction && (now - lastAction > limit)) {
+        handleLogout();
+        toast.error("Session expired. Please log in again.");
+      }
+    };
+
+    const updateActivity = () => localStorage.setItem('lastActionTime', Date.now());
+
+    window.addEventListener('mousemove', updateActivity);
+    window.addEventListener('keydown', updateActivity);
+    const interval = setInterval(checkInactivity, 60000); // Check every minute
+
+    return () => {
+      window.removeEventListener('mousemove', updateActivity);
+      window.removeEventListener('keydown', updateActivity);
+      clearInterval(interval);
+    };
+  }, [user]);
+
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
     localStorage.setItem('appTheme', theme);
@@ -40,7 +68,6 @@ function App() {
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
   const handleLogin = (usernameFromDB, userRoleFromDB, userId, userIsBanned = false) => {
-    // ✅ Use literal username from DB to maintain case/space integrity (e.g. "KAY FLOCK")
     const safeUsername = String(usernameFromDB).trim(); 
     const normalizedRole = userRoleFromDB ? String(userRoleFromDB).toLowerCase() : 'scholar';
 
@@ -53,6 +80,7 @@ function App() {
     localStorage.setItem('userId', userId);
     localStorage.setItem('currentRole', normalizedRole);
     localStorage.setItem('isBanned', userIsBanned); 
+    localStorage.setItem('lastActionTime', Date.now()); // Set initial activity time
     
     if (userIsBanned) { 
       navigate('/banned'); 
@@ -87,8 +115,12 @@ function App() {
     <>
       <Toaster position="top-center" />
       <Routes>
+        {/* ✅ Default Landing: Always redirect root to login */}
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        
         <Route path="/login" element={<Login onLogin={handleLogin} onNavigate={(v) => navigate(`/${v}`)} />} />
         <Route path="/register" element={<Register onSignUp={(n, id, r, b) => handleLogin(n, r, id, b)} onNavigate={(v) => navigate(`/${v}`)} />} />
+        
         <Route path="/dashboard" element={
           <ProtectedRoute user={user} isBanned={isBanned}>
             {role === 'admin' ? (
@@ -109,7 +141,9 @@ function App() {
         <Route path="/course-catalog" element={<ProtectedRoute user={user} isBanned={isBanned}><CourseCatalog username={user} onNavigate={(v) => navigate(`/${v}`)} /></ProtectedRoute>} />
         <Route path="/stats" element={<ProtectedRoute user={user} isBanned={isBanned}><Stats username={user} onNavigate={(v) => navigate(`/${v}`)} refreshTrigger={refreshTrigger} /></ProtectedRoute>} />
         <Route path="/lesson" element={<ProtectedRoute user={user} isBanned={isBanned}><LessonView lesson={activeLesson} onComplete={handleLessonComplete} onExit={() => navigate('/dashboard')} /></ProtectedRoute>} />
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        
+        {/* ✅ Catch-all: Redirect to Login if not logged in */}
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
       {activeChatFriend && currentId && !isBanned && <ChatBox currentUserId={currentId} friend={activeChatFriend} onClose={() => setActiveChatFriend(null)} />}
     </>
