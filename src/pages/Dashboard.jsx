@@ -23,15 +23,14 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
   const fetchUserData = async (isRefresh = false) => {
     if (!isRefresh && xp === 0) setLoading(true);
     
-    // ✅ URL SAFETY FIX: Normalize "KAY FLOCK" to "kayflock" for the API call
-    // This prevents the 404 error caused by spaces in URLs
-    const cleanName = String(username).replace(/\s+/g, '').toLowerCase().trim();
-
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      
+      // ✅ CASE-SENSITIVE FIX: Use literal username to match records in the database
+      // This prevents 404 errors caused by forced lowercasing
       const [userRes, statsRes, coursesRes, feedRes] = await Promise.all([
-        axios.get(`${apiUrl}/api/users/${cleanName}`),
-        axios.get(`${apiUrl}/api/users/${cleanName}/stats`),
+        axios.get(`${apiUrl}/api/users/${username}`),
+        axios.get(`${apiUrl}/api/users/${username}/stats`),
         axios.get(`${apiUrl}/api/courses`),
         axios.get(`${apiUrl}/api/users/activities`)
       ]);
@@ -41,7 +40,6 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
       setLevel(userRes.data.level || 1);
       setStats(statsRes.data);
       
-      // ✅ LIVE FEED SORT: Force absolute newest completions to the top
       const sortedFeed = (feedRes.data || []).sort((a, b) => {
         const timeA = new Date(a.timestamp || a.createdAt);
         const timeB = new Date(b.timestamp || b.createdAt);
@@ -143,7 +141,7 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
            <div className="glass-card" style={{ padding: '20px', marginBottom: '25px', border: '1.5px solid var(--accent-color)' }}>
              <h4 style={{ margin: '0 0 15px 0', fontSize: '15px', color: 'var(--text-primary)', fontWeight: '900' }}><FaCommentDots /> Messenger</h4>
              
-             {/* ✅ ACADEMIC SUPPORT (ADMIN) FIX: Always visible for messages */}
+             {/* ✅ ACADEMIC SUPPORT (ADMIN) FIX */}
              <div onClick={() => onOpenChat({ username: 'Admin', role: 'admin', _id: 'admin_id' })} className="messenger-item" style={{ border: '1.5px solid #f1c40f' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <FaShieldAlt color="#f1c40f" size={20}/>
@@ -166,7 +164,6 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
         </div>
       </div>
 
-      {/* SIDEBAR NAVIGATION */}
       <div onClick={() => setIsMenuOpen(false)} style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', zIndex: 9998, opacity: isMenuOpen ? 1 : 0, pointerEvents: isMenuOpen ? 'all' : 'none', transition: '0.4s' }} />
       <div style={{ position: 'fixed', top: 0, right: isMenuOpen ? '0' : '-100%', width: '340px', height: '100%', zIndex: 9999, transition: '0.4s cubic-bezier(0.16, 1, 0.3, 1)', background: 'var(--bg-body)', borderLeft: '1px solid var(--card-border)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '25px', display: 'flex', justifyContent: 'flex-end' }}><button onClick={() => setIsMenuOpen(false)} style={{ background: 'transparent', border: '1px solid var(--card-border)', color: 'var(--text-primary)', width: '45px', height: '45px', borderRadius: '50%', cursor: 'pointer' }}><FaTimes size={20} /></button></div>

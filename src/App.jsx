@@ -39,9 +39,9 @@ function App() {
 
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
-  const handleLogin = (username, userRoleFromDB, userId, userIsBanned = false) => {
-    // ✅ URL SAFETY FIX: Remove spaces so "KAY FLOCK" becomes "kayflock" for API calls
-    const safeUsername = String(username).replace(/\s+/g, '').toLowerCase().trim();
+  const handleLogin = (usernameFromDB, userRoleFromDB, userId, userIsBanned = false) => {
+    // ✅ Use literal username from DB to maintain case/space integrity (e.g. "KAY FLOCK")
+    const safeUsername = String(usernameFromDB).trim(); 
     const normalizedRole = userRoleFromDB ? String(userRoleFromDB).toLowerCase() : 'scholar';
 
     setUser(safeUsername);
@@ -57,7 +57,7 @@ function App() {
     if (userIsBanned) { 
       navigate('/banned'); 
     } else { 
-      toast.success(`Access Granted, ${safeUsername}`); 
+      toast.success(`Welcome back, ${safeUsername}!`); 
       navigate('/dashboard'); 
     }
   };
