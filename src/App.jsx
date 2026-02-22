@@ -11,10 +11,10 @@ import Forum from './pages/Forum';
 import Stats from './pages/Stats';
 import CourseCatalog from './pages/CourseCatalog';
 import LessonView from './pages/LessonView';
-import StudyDashboard from './pages/StudyDashboard'; // ✅ NEW: Personal Study Vault
+import StudyDashboard from './pages/StudyDashboard'; 
 import ChatBox from './components/ChatBox'; 
 import Banned from './pages/Banned'; 
-import { Toaster, toast } from 'react-hot-toast';
+import Toast from './components/Toast'; // ✅ Import your upgraded Toast
 import axios from 'axios';
 
 const ProtectedRoute = ({ user, isBanned, children }) => {
@@ -35,25 +35,29 @@ function App() {
   const [activeLesson, setActiveLesson] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // ✅ SESSION SECURITY: Auto-logout after 30 minutes of inactivity
+  // ✅ GLOBAL TOAST STATE
+  const [toastConfig, setToastConfig] = useState(null);
+
+  const showToast = (message, type = 'success', xpAmount = null) => {
+    setToastConfig({ message, type, xpAmount });
+  };
+
+  // ✅ SESSION SECURITY: Auto-logout after 30 minutes
   useEffect(() => {
     if (!user) return;
     const checkInactivity = () => {
       const lastAction = localStorage.getItem('lastActionTime');
       const now = Date.now();
       const limit = 30 * 60 * 1000; 
-
       if (lastAction && (now - lastAction > limit)) {
         handleLogout();
-        toast.error("Session expired. Please log in again.");
+        showToast("Session expired. Please log in again.", "error");
       }
     };
-
     const updateActivity = () => localStorage.setItem('lastActionTime', Date.now());
     window.addEventListener('mousemove', updateActivity);
     window.addEventListener('keydown', updateActivity);
     const interval = setInterval(checkInactivity, 60000); 
-
     return () => {
       window.removeEventListener('mousemove', updateActivity);
       window.removeEventListener('keydown', updateActivity);
@@ -71,12 +75,10 @@ function App() {
   const handleLogin = (usernameFromDB, userRoleFromDB, userId, userIsBanned = false) => {
     const safeUsername = String(usernameFromDB).trim(); 
     const normalizedRole = userRoleFromDB ? String(userRoleFromDB).toLowerCase() : 'scholar';
-
     setUser(safeUsername);
     setCurrentId(userId); 
     setRole(normalizedRole);
     setIsBanned(userIsBanned); 
-    
     localStorage.setItem('currentUser', safeUsername);
     localStorage.setItem('userId', userId);
     localStorage.setItem('currentRole', normalizedRole);
@@ -86,7 +88,7 @@ function App() {
     if (userIsBanned) { 
       navigate('/banned'); 
     } else { 
-      toast.success(`Welcome back, ${safeUsername}!`); 
+      showToast(`Welcome back, ${safeUsername}!`, "success"); 
       navigate('/dashboard'); 
     }
   };
@@ -97,9 +99,8 @@ function App() {
 
   const handleLessonComplete = async (earnedXP, quizStats) => {
     if (!activeLesson) return;
-    const toastId = toast.loading("Syncing academic record...");
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+      const apiUrl = import.meta.env.VITE_API_URL || 'https://elearning-api-dr6r.onrender.com';
       await axios.put(`${apiUrl}/api/users/${user}/progress`, {
         xpEarned: earnedXP,
         courseId: activeLesson._id,
@@ -107,20 +108,30 @@ function App() {
         stats: quizStats
       });
       setRefreshTrigger(prev => prev + 1);
-      toast.success(`Milestone Cleared! +${earnedXP} XP`, { id: toastId });
+      showToast("Milestone Cleared!", "reward", earnedXP); // ✅ Using Reward Toast
       navigate('/dashboard');
-    } catch (err) { toast.error("Cloud sync failed.", { id: toastId }); }
+    } catch (err) { 
+      showToast("Cloud sync failed.", "error"); 
+    }
   };
 
   return (
     <>
-      <Toaster position="top-center" />
+      {/* ✅ RENDER GLOBAL TOAST */}
+      {toastConfig && (
+        <Toast 
+          message={toastConfig.message} 
+          type={toastConfig.type} 
+          xpAmount={toastConfig.xpAmount} 
+          onClose={() => setToastConfig(null)} 
+        />
+      )}
+
       <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login onLogin={handleLogin} onNavigate={(v) => navigate(`/${v}`)} />} />
         <Route path="/register" element={<Register onSignUp={(n, id, r, b) => handleLogin(n, r, id, b)} onNavigate={(v) => navigate(`/${v}`)} />} />
         <Route path="/banned" element={<Banned />} />
-        
         <Route path="/forgot-password" element={<ForgotPassword onNavigate={(v) => navigate(`/${v}`)} />} />
         <Route path="/reset-password/:resetToken" element={<ResetPassword onNavigate={(v) => navigate(`/${v}`)} />} />
 
@@ -140,12 +151,12 @@ function App() {
           </ProtectedRoute>
         } />
 
-        {/* ✅ ADDED STUDY VAULT ROUTE */}
         <Route path="/study-vault" element={
           <ProtectedRoute user={user} isBanned={isBanned}>
             <StudyDashboard 
               userId={currentId} 
               onNavigate={(v) => navigate(`/${v}`)} 
+              showToast={showToast} // ✅ Pass the toast trigger here
             />
           </ProtectedRoute>
         } />
