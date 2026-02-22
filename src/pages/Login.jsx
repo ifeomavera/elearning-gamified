@@ -21,11 +21,11 @@ const Login = ({ onLogin, onNavigate }) => {
         password
       });
 
-      // ✅ IDENTITY EXTRACTION: Pulls ID, Role, AND the Ban Status
+      // ✅ IDENTITY EXTRACTION
       const userData = res.data.user || res.data;
       const userId = userData._id || userData.id || res.data.userId; 
       const userRoleFromDB = userData.role ? String(userData.role).toLowerCase() : 'scholar'; 
-      const userIsBanned = userData.isBanned === true; // Extract the ban status
+      const userIsBanned = userData.isBanned === true; 
 
       if (!userId) {
         console.error("Login Success but no ID found in response:", res.data);
@@ -44,9 +44,9 @@ const Login = ({ onLogin, onNavigate }) => {
         }
       }
 
-      // ✅ THE HANDSHAKE: Passing the verified userId AND isBanned status to App.jsx
+      // ✅ THE HANDSHAKE
       const finalRole = (isAdminLogin && isDev) ? 'admin' : userRoleFromDB;
-      onLogin(userData.username, finalRole, userId, userIsBanned); // Added 4th parameter here
+      onLogin(userData.username, finalRole, userId, userIsBanned);
 
     } catch (err) {
       console.error("Login Failed:", err);
@@ -96,8 +96,14 @@ const Login = ({ onLogin, onNavigate }) => {
             </span>
           </div>
 
+          {/* ✅ FIXED NAVIGATION: This triggers the /forgot-password route in App.jsx */}
           <div style={styles.forgotRow}>
-            <span onClick={() => onNavigate('forgot-password')} style={styles.forgotLink}>Forgot Password?</span>
+            <span 
+              onClick={() => onNavigate('forgot-password')} 
+              style={styles.forgotLink}
+            >
+              Forgot Password?
+            </span>
           </div>
 
           <button type="submit" style={{ ...styles.button, background: isAdminLogin ? 'linear-gradient(to right, #ff6b6b, #ee5253)' : 'linear-gradient(to right, #6c5ce7, #a29bfe)' }}>
@@ -137,7 +143,7 @@ const styles = {
   input: { width: '100%', padding: '14px 45px', borderRadius: '12px', border: '1px solid #f1f2f6', background: '#f8f9fa', fontSize: '15px', color: '#2d3436', outline: 'none' },
   eyeIcon: { position: 'absolute', right: '15px', top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', color: '#b2bec3', zIndex: 2 },
   forgotRow: { textAlign: 'right', marginTop: '-5px' },
-  forgotLink: { fontSize: '12px', color: '#636e72', cursor: 'pointer' },
+  forgotLink: { fontSize: '12px', color: '#636e72', cursor: 'pointer', textDecoration: 'underline' },
   button: { width: '100%', padding: '16px', borderRadius: '12px', border: 'none', color: 'white', fontSize: '16px', fontWeight: '700', cursor: 'pointer', marginTop: '10px' },
   errorBox: { background: '#ffeaa7', color: '#d63031', padding: '12px', borderRadius: '8px', fontSize: '14px', textAlign: 'center', marginBottom: '20px' },
   footer: { marginTop: '30px', textAlign: 'center', borderTop: '1px solid #f1f2f6', paddingTop: '20px' },

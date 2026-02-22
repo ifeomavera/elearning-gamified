@@ -3,6 +3,8 @@ import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword'; // ✅ Added
+import ResetPassword from './pages/ResetPassword';     // ✅ Added
 import AdminDashboard from './pages/AdminDashboard';
 import Profile from './pages/Profile';
 import Forum from './pages/Forum';
@@ -35,11 +37,10 @@ function App() {
   // ✅ SESSION SECURITY: Auto-logout after 30 minutes of inactivity
   useEffect(() => {
     if (!user) return;
-
     const checkInactivity = () => {
       const lastAction = localStorage.getItem('lastActionTime');
       const now = Date.now();
-      const limit = 30 * 60 * 1000; // 30 Minutes
+      const limit = 30 * 60 * 1000; 
 
       if (lastAction && (now - lastAction > limit)) {
         handleLogout();
@@ -48,10 +49,9 @@ function App() {
     };
 
     const updateActivity = () => localStorage.setItem('lastActionTime', Date.now());
-
     window.addEventListener('mousemove', updateActivity);
     window.addEventListener('keydown', updateActivity);
-    const interval = setInterval(checkInactivity, 60000); // Check every minute
+    const interval = setInterval(checkInactivity, 60000); 
 
     return () => {
       window.removeEventListener('mousemove', updateActivity);
@@ -80,7 +80,7 @@ function App() {
     localStorage.setItem('userId', userId);
     localStorage.setItem('currentRole', normalizedRole);
     localStorage.setItem('isBanned', userIsBanned); 
-    localStorage.setItem('lastActionTime', Date.now()); // Set initial activity time
+    localStorage.setItem('lastActionTime', Date.now()); 
     
     if (userIsBanned) { 
       navigate('/banned'); 
@@ -115,12 +115,14 @@ function App() {
     <>
       <Toaster position="top-center" />
       <Routes>
-        {/* ✅ Default Landing: Always redirect root to login */}
         <Route path="/" element={<Navigate to="/login" replace />} />
-        
         <Route path="/login" element={<Login onLogin={handleLogin} onNavigate={(v) => navigate(`/${v}`)} />} />
         <Route path="/register" element={<Register onSignUp={(n, id, r, b) => handleLogin(n, r, id, b)} onNavigate={(v) => navigate(`/${v}`)} />} />
         
+        {/* ✅ PASSWORD RECOVERY ROUTES */}
+        <Route path="/forgot-password" element={<ForgotPassword onNavigate={(v) => navigate(`/${v}`)} />} />
+        <Route path="/reset-password/:resetToken" element={<ResetPassword onNavigate={(v) => navigate(`/${v}`)} />} />
+
         <Route path="/dashboard" element={
           <ProtectedRoute user={user} isBanned={isBanned}>
             {role === 'admin' ? (
@@ -141,8 +143,6 @@ function App() {
         <Route path="/course-catalog" element={<ProtectedRoute user={user} isBanned={isBanned}><CourseCatalog username={user} onNavigate={(v) => navigate(`/${v}`)} /></ProtectedRoute>} />
         <Route path="/stats" element={<ProtectedRoute user={user} isBanned={isBanned}><Stats username={user} onNavigate={(v) => navigate(`/${v}`)} refreshTrigger={refreshTrigger} /></ProtectedRoute>} />
         <Route path="/lesson" element={<ProtectedRoute user={user} isBanned={isBanned}><LessonView lesson={activeLesson} onComplete={handleLessonComplete} onExit={() => navigate('/dashboard')} /></ProtectedRoute>} />
-        
-        {/* ✅ Catch-all: Redirect to Login if not logged in */}
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
       {activeChatFriend && currentId && !isBanned && <ChatBox currentUserId={currentId} friend={activeChatFriend} onClose={() => setActiveChatFriend(null)} />}
