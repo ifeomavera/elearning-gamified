@@ -30,9 +30,20 @@ const LessonView = ({ lesson, onComplete, onExit }) => {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-body)', display: 'flex', flexDirection: 'column', padding: '15px' }}>
       <style>{`
-        .video-wrapper { position: relative; width: 100%; paddingTop: 56.25%; background: #000; borderRadius: 20px; overflow: hidden; marginBottom: 30px; boxShadow: 0 20px 50px rgba(0,0,0,0.4); border: 1px solid var(--card-border); }
-        .lesson-header-text { margin: 0; color: var(--text-primary); fontSize: 20px; fontWeight: bold; }
-        .victory-text { color: var(--text-primary); fontSize: 32px; marginBottom: 10px; }
+        /* ✅ FIX: Using standard CSS kebab-case (padding-top, border-radius, etc.) */
+        .video-wrapper { 
+          position: relative; 
+          width: 100%; 
+          padding-top: 56.25%; 
+          background: #000; 
+          border-radius: 20px; 
+          overflow: hidden; 
+          margin-bottom: 30px; 
+          box-shadow: 0 20px 50px rgba(0,0,0,0.4); 
+          border: 1px solid var(--card-border); 
+        }
+        .lesson-header-text { margin: 0; color: var(--text-primary); font-size: 20px; font-weight: bold; }
+        .victory-text { color: var(--text-primary); font-size: 32px; margin-bottom: 10px; }
         
         @media (max-width: 600px) {
           .lesson-header-text { font-size: 16px; }
@@ -58,6 +69,7 @@ const LessonView = ({ lesson, onComplete, onExit }) => {
 
       <div className="glass-card" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '15px', position: 'relative', borderRadius: '24px' }}>
         
+        {/* --- STEP 1: VIDEO LESSON --- */}
         {step === 'video' && (
           <div style={{ width: '100%', maxWidth: '800px', textAlign: 'center' }}>
             <div className="video-wrapper">
@@ -82,12 +94,14 @@ const LessonView = ({ lesson, onComplete, onExit }) => {
           </div>
         )}
 
+        {/* --- STEP 2: THE AI ADAPTIVE QUIZ --- */}
         {step === 'quiz' && (
           <div style={{ width: '100%', maxWidth: '800px' }}>
             <AdaptiveQuiz lessonId={`lesson-00${lesson._id}`} onComplete={handleQuizComplete} />
           </div>
         )}
 
+        {/* --- STEP 3: VICTORY SCREEN --- */}
         {step === 'result' && (
           <div style={{ textAlign: 'center', animation: 'fadeIn 1s ease-out' }}>
              <div style={{ fontSize: '80px', marginBottom: '20px' }}>🏆</div>
