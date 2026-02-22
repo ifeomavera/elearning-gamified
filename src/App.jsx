@@ -47,7 +47,6 @@ function App() {
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
   const handleLogin = (username, userRoleFromDB, userId, userIsBanned = false) => {
-    // ✅ CRITICAL FIX: Normalize username to prevent 400 errors from mobile capitalization
     const safeUsername = String(username).toLowerCase().trim();
     const normalizedRole = userRoleFromDB ? String(userRoleFromDB).toLowerCase() : 'scholar';
 
@@ -76,7 +75,8 @@ function App() {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       await axios.put(`${apiUrl}/api/users/${user}/progress`, {
         xpEarned: earnedXP,
-        courseId: activeLesson._id 
+        courseId: activeLesson._id,
+        courseTitle: activeLesson.title // ✅ FIX: Send title to record in Live Feed
       });
       setRefreshTrigger(prev => prev + 1);
       toast.success(`Milestone Cleared! +${earnedXP} XP`, { id: toastId });
@@ -90,12 +90,13 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login onLogin={handleLogin} onNavigate={(v) => navigate(`/${v}`)} />} />
         <Route path="/register" element={<Register onSignUp={(n, id, r, b) => handleLogin(n, r, id, b)} onNavigate={(v) => navigate(`/${v}`)} />} />
+        
         <Route path="/dashboard" element={
           <ProtectedRoute user={user} isBanned={isBanned}>
             {role === 'admin' ? (
               <AdminDashboard 
                 onLogout={handleLogout} 
-                onOpenChat={(f) => setActiveChatFriend(f)} // ✅ FIX: Added missing onOpenChat prop
+                onOpenChat={(f) => setActiveChatFriend(f)} // ✅ FIX: Prevents crash in Admin
               />
             ) : (
               <Dashboard 
@@ -108,6 +109,7 @@ function App() {
             )}
           </ProtectedRoute>
         } />
+        
         <Route path="/profile" element={<ProtectedRoute user={user} isBanned={isBanned}><Profile onNavigate={(v) => navigate(`/${v}`)} onUpdateProfile={setUser} /></ProtectedRoute>} />
         <Route path="/forum" element={<ProtectedRoute user={user} isBanned={isBanned}><Forum username={user} avatar={avatar} onNavigate={(v) => navigate(`/${v}`)} /></ProtectedRoute>} />
         <Route path="/course-catalog" element={<ProtectedRoute user={user} isBanned={isBanned}><CourseCatalog username={user} onNavigate={(v) => navigate(`/${v}`)} /></ProtectedRoute>} />
