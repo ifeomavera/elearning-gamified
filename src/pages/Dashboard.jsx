@@ -21,9 +21,7 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const fetchUserData = async (isRefresh = false) => {
-    // Only show full-screen loader on initial mount
     if (!isRefresh && xp === 0) setLoading(true);
-    
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       const [userRes, statsRes, coursesRes, feedRes] = await Promise.all([
@@ -38,7 +36,7 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
       setLevel(userRes.data.level || 1);
       setStats(statsRes.data);
       
-      // ✅ LIVE FEED SORT: Checks both 'timestamp' and 'createdAt' for safety
+      // ✅ LIVE FEED SORT: Force absolute newest completions to the top
       const sortedFeed = (feedRes.data || []).sort((a, b) => {
         const timeA = new Date(a.timestamp || a.createdAt);
         const timeB = new Date(b.timestamp || b.createdAt);
@@ -60,7 +58,6 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
     }
   };
 
-  // ✅ Trigger fetch whenever username or refreshTrigger changes
   useEffect(() => { 
     fetchUserData(refreshTrigger > 0); 
   }, [username, refreshTrigger]);
@@ -74,7 +71,6 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
   return (
     <div style={{ width: '100%', minHeight: '100vh', padding: '15px', background: 'var(--bg-body)' }}>
       <style>{`
-        /* ✅ LAYOUT FIX: Ensures the center column fills space properly */
         .dashboard-grid { 
           display: grid; 
           grid-template-columns: 300px 1fr 340px; 
@@ -93,21 +89,18 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
         }
         .enroll-card:hover { background: rgba(108, 92, 231, 0.1); transform: translateY(-4px); }
         .vici-menu-item { display: flex; align-items: center; gap: 15px; width: 100%; padding: 15px 40px; background: transparent; border: none; color: var(--text-primary); font-size: 16px; font-weight: 700; cursor: pointer; transition: 0.2s; }
-        .vici-menu-item:hover { background: rgba(255,255,255,0.05); color: var(--accent-color); padding-left: 45px; }
         @media (max-width: 1300px) { .dashboard-grid { grid-template-columns: 1fr 320px; } .achievements-col { display: none; } }
         @media (max-width: 800px) { .dashboard-grid { grid-template-columns: 1fr; } .social-col { order: 3; } }
       `}</style>
 
-      {/* HEADER */}
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', maxWidth: '1600px', margin: '0 auto 25px auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
           <div className="glass-card" onClick={() => onNavigate('profile')} style={{ cursor: 'pointer', width: '55px', height: '55px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px' }}>{avatar}</div>
-          <div><h1 style={{ margin: 0, fontSize: '20px', color: 'var(--text-primary)', fontWeight: '900' }}>{username}</h1><p style={{ margin: 0, fontSize: '12px', color: 'var(--accent-color)', fontWeight: '800' }}>Independent Scholar</p></div>
+          <div><h1 style={{ margin: 0, fontSize: '20px', color: 'var(--text-primary)', fontWeight: '900' }}>{username}</h1><p style={{ margin: 0, fontSize: '12px', color: 'var(--accent-color)', fontWeight: '800' }}>Scholar</p></div>
         </div>
         <button onClick={() => setIsMenuOpen(true)} className="glass-card" style={{ padding: '12px', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', borderRadius: '12px' }}><FaBars size={22} /></button>
       </header>
 
-      {/* PROGRESS BAR */}
       <div className="glass-card" style={{ padding: '25px', marginBottom: '30px', maxWidth: '1600px', margin: '0 auto 30px auto' }}>
         <XPBar currentXP={xp} level={level} />
         <div style={{ textAlign: 'right', marginTop: '12px' }}>
@@ -122,7 +115,7 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: 'var(--text-primary)' }}><span>Streak</span><b>🔥 {stats.streak} Days</b></div>
              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: 'var(--text-primary)', marginTop: '12px' }}><span>Accuracy</span><b>🎯 {stats.accuracy}%</b></div>
           </div>
-          <h3 style={{ fontSize: '15px', color: 'var(--text-primary)', marginBottom: '15px', fontWeight: '900' }}>Milestone Badges</h3>
+          <h3 style={{ fontSize: '15px', color: 'var(--text-primary)', marginBottom: '15px', fontWeight: '900' }}>Badges</h3>
           {userData?.badges?.map((b, i) => <BadgeCard key={i} name={b} isUnlocked={true} />)}
         </div>
 
@@ -146,12 +139,10 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
                </div>
              ))}
            </div>
-           {/* ✅ Real-Time Activity Component updated here */}
            <ActivityFeed activities={activities} />
         </div>
       </div>
 
-      {/* SIDEBAR NAVIGATION */}
       <div onClick={() => setIsMenuOpen(false)} style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', zIndex: 9998, opacity: isMenuOpen ? 1 : 0, pointerEvents: isMenuOpen ? 'all' : 'none', transition: '0.4s' }} />
       <div style={{ position: 'fixed', top: 0, right: isMenuOpen ? '0' : '-100%', width: '340px', height: '100%', zIndex: 9999, transition: '0.4s cubic-bezier(0.16, 1, 0.3, 1)', background: 'var(--bg-body)', borderLeft: '1px solid var(--card-border)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '25px', display: 'flex', justifyContent: 'flex-end' }}><button onClick={() => setIsMenuOpen(false)} style={{ background: 'transparent', border: '1px solid var(--card-border)', color: 'var(--text-primary)', width: '45px', height: '45px', borderRadius: '50%', cursor: 'pointer' }}><FaTimes size={20} /></button></div>

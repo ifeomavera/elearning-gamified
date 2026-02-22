@@ -47,17 +47,22 @@ function App() {
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
   const handleLogin = (username, userRoleFromDB, userId, userIsBanned = false) => {
+    // ✅ CRITICAL FIX: Normalize username to prevent 400 errors from mobile capitalization
     const safeUsername = String(username).toLowerCase().trim();
     const normalizedRole = userRoleFromDB ? String(userRoleFromDB).toLowerCase() : 'scholar';
+
     setUser(safeUsername);
     setCurrentId(userId); 
     setRole(normalizedRole);
     setIsBanned(userIsBanned); 
+    
     localStorage.setItem('currentUser', safeUsername);
     localStorage.setItem('userId', userId);
     localStorage.setItem('currentRole', normalizedRole);
     localStorage.setItem('isBanned', userIsBanned); 
-    if (userIsBanned) { navigate('/banned'); } else { navigate('/dashboard'); }
+    
+    if (userIsBanned) { navigate('/banned'); } 
+    else { toast.success(`Welcome, ${safeUsername}!`); navigate('/dashboard'); }
   };
 
   const handleLogout = () => {
@@ -73,7 +78,6 @@ function App() {
         xpEarned: earnedXP,
         courseId: activeLesson._id 
       });
-      // ✅ REFRESH SIGNAL: Forces Dashboard to pull new XP and Feed
       setRefreshTrigger(prev => prev + 1);
       toast.success(`Milestone Cleared! +${earnedXP} XP`, { id: toastId });
       navigate('/dashboard');
@@ -88,14 +92,20 @@ function App() {
         <Route path="/register" element={<Register onSignUp={(n, id, r, b) => handleLogin(n, r, id, b)} onNavigate={(v) => navigate(`/${v}`)} />} />
         <Route path="/dashboard" element={
           <ProtectedRoute user={user} isBanned={isBanned}>
-            {role === 'admin' ? <AdminDashboard onLogout={handleLogout} /> : 
-            <Dashboard 
-              username={user} avatar={avatar} refreshTrigger={refreshTrigger}
-              onLogout={handleLogout} onNavigate={(v) => navigate(`/${v}`)} 
-              toggleTheme={toggleTheme} currentTheme={theme} 
-              onStartLesson={(l) => { setActiveLesson(l); navigate('/lesson'); }} 
-              onOpenChat={(f) => setActiveChatFriend(f)} 
-            />}
+            {role === 'admin' ? (
+              <AdminDashboard 
+                onLogout={handleLogout} 
+                onOpenChat={(f) => setActiveChatFriend(f)} // ✅ FIX: Added missing onOpenChat prop
+              />
+            ) : (
+              <Dashboard 
+                username={user} avatar={avatar} refreshTrigger={refreshTrigger}
+                onLogout={handleLogout} onNavigate={(v) => navigate(`/${v}`)} 
+                toggleTheme={toggleTheme} currentTheme={theme} 
+                onStartLesson={(l) => { setActiveLesson(l); navigate('/lesson'); }} 
+                onOpenChat={(f) => setActiveChatFriend(f)} 
+              />
+            )}
           </ProtectedRoute>
         } />
         <Route path="/profile" element={<ProtectedRoute user={user} isBanned={isBanned}><Profile onNavigate={(v) => navigate(`/${v}`)} onUpdateProfile={setUser} /></ProtectedRoute>} />
