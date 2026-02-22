@@ -47,6 +47,7 @@ function App() {
   const toggleTheme = () => setTheme(prev => prev === 'light' ? 'dark' : 'light');
 
   const handleLogin = (username, userRoleFromDB, userId, userIsBanned = false) => {
+    // ✅ CRITICAL MOBILE FIX: Force lowercase and trim
     const safeUsername = String(username).toLowerCase().trim();
     const normalizedRole = userRoleFromDB ? String(userRoleFromDB).toLowerCase() : 'scholar';
 
@@ -61,22 +62,24 @@ function App() {
     localStorage.setItem('isBanned', userIsBanned); 
     
     if (userIsBanned) { navigate('/banned'); } 
-    else { toast.success(`Welcome, ${safeUsername}!`); navigate('/dashboard'); }
+    else { toast.success(`Access Granted, ${safeUsername}!`); navigate('/dashboard'); }
   };
 
   const handleLogout = () => {
     setUser(null); setCurrentId(null); localStorage.clear(); navigate('/login');
   };
 
-  const handleLessonComplete = async (earnedXP) => {
+  // ✅ UPDATED: Accepts earnedXP and quizStats {total, correct}
+  const handleLessonComplete = async (earnedXP, quizStats) => {
     if (!activeLesson) return;
-    const toastId = toast.loading("Syncing academic record...");
+    const toastId = toast.loading("Recording academic performance...");
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       await axios.put(`${apiUrl}/api/users/${user}/progress`, {
         xpEarned: earnedXP,
         courseId: activeLesson._id,
-        courseTitle: activeLesson.title // ✅ FIX: Send title to record in Live Feed
+        courseTitle: activeLesson.title,
+        stats: quizStats // ✅ Dispatches real stats to the backend accuracy engine
       });
       setRefreshTrigger(prev => prev + 1);
       toast.success(`Milestone Cleared! +${earnedXP} XP`, { id: toastId });
