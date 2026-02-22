@@ -26,11 +26,12 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
       
-      // ✅ CASE-SENSITIVE FIX: Use literal username to match records in the database
-      // This prevents 404 errors caused by forced lowercasing
+      // ✅ FIX: Encode username to handle spaces like "KAY FLOCK" correctly in the URL
+      const encodedName = encodeURIComponent(username);
+
       const [userRes, statsRes, coursesRes, feedRes] = await Promise.all([
-        axios.get(`${apiUrl}/api/users/${username}`),
-        axios.get(`${apiUrl}/api/users/${username}/stats`),
+        axios.get(`${apiUrl}/api/users/${encodedName}`),
+        axios.get(`${apiUrl}/api/users/${encodedName}/stats`),
         axios.get(`${apiUrl}/api/courses`),
         axios.get(`${apiUrl}/api/users/activities`)
       ]);
@@ -74,22 +75,8 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
   return (
     <div style={{ width: '100%', minHeight: '100vh', padding: '15px', background: 'var(--bg-body)' }}>
       <style>{`
-        .dashboard-grid { 
-          display: grid; 
-          grid-template-columns: 320px 1fr 340px; 
-          gap: 25px; 
-          max-width: 1600px; 
-          width: 100%; 
-          margin: 0 auto; 
-          align-items: start; 
-        }
-        .enroll-card {
-          margin-top: 15px; border: 2.5px dashed var(--accent-color); padding: 40px 20px; 
-          border-radius: 24px; color: var(--accent-color); cursor: pointer;
-          display: flex; align-items: center; justify-content: center; gap: 15px;
-          font-weight: 900; text-transform: uppercase; transition: 0.3s;
-          background: rgba(108, 92, 231, 0.04); font-size: 16px;
-        }
+        .dashboard-grid { display: grid; grid-template-columns: 320px 1fr 340px; gap: 25px; max-width: 1600px; width: 100%; margin: 0 auto; align-items: start; }
+        .enroll-card { margin-top: 15px; border: 2.5px dashed var(--accent-color); padding: 40px 20px; border-radius: 24px; color: var(--accent-color); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 15px; font-weight: 900; text-transform: uppercase; transition: 0.3s; background: rgba(108, 92, 231, 0.04); font-size: 16px; }
         .enroll-card:hover { background: rgba(108, 92, 231, 0.1); transform: translateY(-4px); }
         .vici-menu-item { display: flex; align-items: center; gap: 15px; width: 100%; padding: 15px 40px; background: transparent; border: none; color: var(--text-primary); font-size: 16px; font-weight: 700; cursor: pointer; transition: 0.2s; }
         .vici-menu-item:hover { background: rgba(255,255,255,0.05); color: var(--accent-color); padding-left: 45px; }
@@ -99,7 +86,6 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
         @media (max-width: 800px) { .dashboard-grid { grid-template-columns: 1fr; } .social-col { order: 3; } }
       `}</style>
 
-      {/* HEADER */}
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', maxWidth: '1600px', margin: '0 auto 25px auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
           <div className="glass-card" onClick={() => onNavigate('profile')} style={{ cursor: 'pointer', width: '55px', height: '55px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px' }}>{avatar}</div>
@@ -108,7 +94,6 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
         <button onClick={() => setIsMenuOpen(true)} className="glass-card" style={{ padding: '12px', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', borderRadius: '12px' }}><FaBars size={22} /></button>
       </header>
 
-      {/* PROGRESS BAR */}
       <div className="glass-card" style={{ padding: '25px', marginBottom: '30px', maxWidth: '1600px', margin: '0 auto 30px auto' }}>
         <XPBar currentXP={xp} level={level} />
         <div style={{ textAlign: 'right', marginTop: '12px' }}>
@@ -141,8 +126,8 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
            <div className="glass-card" style={{ padding: '20px', marginBottom: '25px', border: '1.5px solid var(--accent-color)' }}>
              <h4 style={{ margin: '0 0 15px 0', fontSize: '15px', color: 'var(--text-primary)', fontWeight: '900' }}><FaCommentDots /> Messenger</h4>
              
-             {/* ✅ ACADEMIC SUPPORT (ADMIN) FIX */}
-             <div onClick={() => onOpenChat({ username: 'Admin', role: 'admin', _id: 'admin_id' })} className="messenger-item" style={{ border: '1.5px solid #f1c40f' }}>
+             {/* ✅ FIX: Replace 'admin_id' with a real 24-character hex ID to prevent 500 errors */}
+             <div onClick={() => onOpenChat({ username: 'Admin', role: 'admin', _id: '65d000000000000000000001' })} className="messenger-item" style={{ border: '1.5px solid #f1c40f' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <FaShieldAlt color="#f1c40f" size={20}/>
                   <span style={{ fontSize: '14px', color: 'var(--text-primary)', fontWeight: '800' }}>Academic Support</span>
