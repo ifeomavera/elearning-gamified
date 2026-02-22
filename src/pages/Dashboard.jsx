@@ -6,7 +6,8 @@ import ActivityFeed from '../components/ActivityFeed';
 import SocialInbox from '../components/SocialInbox'; 
 import { 
   FaBookOpen, FaPlus, FaChartLine, FaBars, FaCommentDots, 
-  FaUser, FaUsers, FaSignOutAlt, FaTimes, FaMoon, FaSun, FaShieldAlt 
+  FaUser, FaUsers, FaSignOutAlt, FaTimes, FaMoon, FaSun, FaShieldAlt,
+  FaBrain // ✅ NEW: Icon for Study Vault
 } from 'react-icons/fa';
 import axios from 'axios';
 
@@ -25,8 +26,6 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
     
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-      
-      // ✅ MANDATORY FIX: Encode username to handle spaces correctly (KAY FLOCK)
       const encodedName = encodeURIComponent(username);
 
       const [userRes, statsRes, coursesRes, feedRes] = await Promise.all([
@@ -84,14 +83,16 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
           margin: 0 auto; 
           align-items: start; 
         }
-        .enroll-card {
-          margin-top: 15px; border: 2.5px dashed var(--accent-color); padding: 40px 20px; 
-          border-radius: 24px; color: var(--accent-color); cursor: pointer;
+        .action-card {
+          margin-top: 15px; border: 2.5px solid var(--accent-color); padding: 25px 20px; 
+          border-radius: 24px; color: var(--text-primary); cursor: pointer;
           display: flex; align-items: center; justify-content: center; gap: 15px;
           font-weight: 900; text-transform: uppercase; transition: 0.3s;
-          background: rgba(108, 92, 231, 0.04); font-size: 16px;
+          background: rgba(108, 92, 231, 0.04); font-size: 14px;
         }
-        .enroll-card:hover { background: rgba(108, 92, 231, 0.1); transform: translateY(-4px); }
+        .action-card:hover { background: rgba(108, 92, 231, 0.1); transform: translateY(-4px); }
+        .study-vault-card { border-color: #2ecc71; color: #2ecc71; background: rgba(46, 204, 113, 0.05); }
+        .study-vault-card:hover { background: rgba(46, 204, 113, 0.1); border-color: #27ae60; }
         .vici-menu-item { display: flex; align-items: center; gap: 15px; width: 100%; padding: 15px 40px; background: transparent; border: none; color: var(--text-primary); font-size: 16px; font-weight: 700; cursor: pointer; transition: 0.2s; }
         .vici-menu-item:hover { background: rgba(255,255,255,0.05); color: var(--accent-color); padding-left: 45px; }
         .messenger-item { display: flex; align-items: center; justify-content: space-between; padding: 12px; background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); border-radius: 15px; margin-bottom: 10px; cursor: pointer; transition: 0.2s; }
@@ -118,21 +119,30 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
       <div className="dashboard-grid">
         <div className="achievements-col">
           <div className="glass-card" style={{ padding: '20px', marginBottom: '25px' }}>
-             <h4 style={{ margin: '0 0 15px 0', fontSize: '12px', color: 'var(--accent-color)', textTransform: 'uppercase', fontWeight: '900' }}>Academic Record</h4>
-             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: 'var(--text-primary)' }}><span>Streak</span><b>🔥 {stats.streak} Days</b></div>
-             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: 'var(--text-primary)', marginTop: '12px' }}><span>Accuracy</span><b>🎯 {stats.accuracy}%</b></div>
+              <h4 style={{ margin: '0 0 15px 0', fontSize: '12px', color: 'var(--accent-color)', textTransform: 'uppercase', fontWeight: '900' }}>Academic Record</h4>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: 'var(--text-primary)' }}><span>Streak</span><b>🔥 {stats.streak} Days</b></div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: 'var(--text-primary)', marginTop: '12px' }}><span>Accuracy</span><b>🎯 {stats.accuracy}%</b></div>
           </div>
-          <h3 style={{ fontSize: '15px', color: 'var(--text-primary)', marginBottom: '15px', fontWeight: '900' }}>Milestone Badges</h3>
+          
+          {/* ✅ NEW: Quick Access to Study Vault from Sidebar */}
+          <div className="action-card study-vault-card" onClick={() => onNavigate('study-vault')}>
+            <FaBrain size={20} /> 
+            <span>AI Study Vault</span>
+          </div>
+
+          <h3 style={{ fontSize: '15px', color: 'var(--text-primary)', marginTop: '25px', marginBottom: '15px', fontWeight: '900' }}>Milestone Badges</h3>
           {userData?.badges?.map((b, i) => <BadgeCard key={i} name={b} isUnlocked={true} />)}
         </div>
 
         <div className="center-col">
           <h3 style={{ fontSize: '18px', color: 'var(--text-primary)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '12px', fontWeight: '900' }}>
-             <FaBookOpen color="var(--accent-color)" /> Active Curriculum
+              <FaBookOpen color="var(--accent-color)" /> Active Curriculum
           </h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
             {courses.map(c => <CourseCard key={c._id} {...c} isCompleted={c.completed} onClick={() => onStartLesson(c)} />)}
-            <div className="enroll-card" onClick={() => onNavigate('course-catalog')}><FaPlus /> Enroll in New Module</div>
+            <div className="action-card" style={{ borderStyle: 'dashed' }} onClick={() => onNavigate('course-catalog')}>
+              <FaPlus /> Enroll in New Module
+            </div>
           </div>
         </div>
 
@@ -140,7 +150,6 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
            <div className="glass-card" style={{ padding: '20px', marginBottom: '25px', border: '1.5px solid var(--accent-color)' }}>
              <h4 style={{ margin: '0 0 15px 0', fontSize: '15px', color: 'var(--text-primary)', fontWeight: '900' }}><FaCommentDots /> Messenger</h4>
              
-             {/* ✅ FIX: Valid 24-character ID format prevents Mongoose 'CastError' crash */}
              <div onClick={() => onOpenChat({ username: 'Admin', role: 'admin', _id: '65d000000000000000000001' })} className="messenger-item" style={{ border: '1.5px solid #f1c40f' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <FaShieldAlt color="#f1c40f" size={20}/>
@@ -169,6 +178,12 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
         <div style={{ padding: '0 40px 40px 40px', textAlign: 'center', borderBottom: '1px solid var(--card-border)' }}><div style={{ fontSize: '70px', marginBottom: '20px' }}>{avatar}</div><h2 style={{ color: 'var(--text-primary)', margin: 0, fontWeight: '900' }}>{username}</h2></div>
         <div style={{ padding: '30px 0', display: 'flex', flexDirection: 'column', height: '100%' }}>
           <button onClick={() => { onNavigate('profile'); setIsMenuOpen(false); }} className="vici-menu-item"><FaUser opacity={0.6} /> Profile Settings</button>
+          
+          {/* ✅ NEW: Study Vault in Main Menu */}
+          <button onClick={() => { onNavigate('study-vault'); setIsMenuOpen(false); }} className="vici-menu-item" style={{ color: '#2ecc71' }}>
+            <FaBrain opacity={0.8} /> Personal Study Vault
+          </button>
+
           <button onClick={() => { onNavigate('course-catalog'); setIsMenuOpen(false); }} className="vici-menu-item"><FaBookOpen opacity={0.6} /> Course Catalog</button>
           <button onClick={() => { onNavigate('forum'); setIsMenuOpen(false); }} className="vici-menu-item"><FaUsers opacity={0.6} /> Community</button>
           <button onClick={toggleTheme} className="vici-menu-item">{currentTheme === 'light' ? <FaMoon opacity={0.6} /> : <FaSun opacity={0.6} />} {currentTheme === 'light' ? "Dark Mode" : "Light Mode"}</button>

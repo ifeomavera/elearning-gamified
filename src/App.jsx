@@ -3,14 +3,15 @@ import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import Login from './pages/Login';
 import Register from './pages/Register';
-import ForgotPassword from './pages/ForgotPassword'; // ✅ Added
-import ResetPassword from './pages/ResetPassword';     // ✅ Added
+import ForgotPassword from './pages/ForgotPassword'; 
+import ResetPassword from './pages/ResetPassword';     
 import AdminDashboard from './pages/AdminDashboard';
 import Profile from './pages/Profile';
 import Forum from './pages/Forum';
 import Stats from './pages/Stats';
 import CourseCatalog from './pages/CourseCatalog';
 import LessonView from './pages/LessonView';
+import StudyDashboard from './pages/StudyDashboard'; // ✅ NEW: Personal Study Vault
 import ChatBox from './components/ChatBox'; 
 import Banned from './pages/Banned'; 
 import { Toaster, toast } from 'react-hot-toast';
@@ -118,8 +119,8 @@ function App() {
         <Route path="/" element={<Navigate to="/login" replace />} />
         <Route path="/login" element={<Login onLogin={handleLogin} onNavigate={(v) => navigate(`/${v}`)} />} />
         <Route path="/register" element={<Register onSignUp={(n, id, r, b) => handleLogin(n, r, id, b)} onNavigate={(v) => navigate(`/${v}`)} />} />
+        <Route path="/banned" element={<Banned />} />
         
-        {/* ✅ PASSWORD RECOVERY ROUTES */}
         <Route path="/forgot-password" element={<ForgotPassword onNavigate={(v) => navigate(`/${v}`)} />} />
         <Route path="/reset-password/:resetToken" element={<ResetPassword onNavigate={(v) => navigate(`/${v}`)} />} />
 
@@ -138,6 +139,17 @@ function App() {
             )}
           </ProtectedRoute>
         } />
+
+        {/* ✅ ADDED STUDY VAULT ROUTE */}
+        <Route path="/study-vault" element={
+          <ProtectedRoute user={user} isBanned={isBanned}>
+            <StudyDashboard 
+              userId={currentId} 
+              onNavigate={(v) => navigate(`/${v}`)} 
+            />
+          </ProtectedRoute>
+        } />
+
         <Route path="/profile" element={<ProtectedRoute user={user} isBanned={isBanned}><Profile onNavigate={(v) => navigate(`/${v}`)} onUpdateProfile={setUser} /></ProtectedRoute>} />
         <Route path="/forum" element={<ProtectedRoute user={user} isBanned={isBanned}><Forum username={user} avatar={avatar} onNavigate={(v) => navigate(`/${v}`)} /></ProtectedRoute>} />
         <Route path="/course-catalog" element={<ProtectedRoute user={user} isBanned={isBanned}><CourseCatalog username={user} onNavigate={(v) => navigate(`/${v}`)} /></ProtectedRoute>} />
