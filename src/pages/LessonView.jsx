@@ -7,12 +7,10 @@ const LessonView = ({ lesson, onComplete, onExit }) => {
   const [step, setStep] = useState('video'); 
   const [finalXP, setFinalXP] = useState(0); 
 
-  // ✅ HANDLE AI QUIZ COMPLETION
   const handleQuizComplete = (result) => {
     const earnedXP = result.score; 
     setFinalXP(earnedXP);
     
-    // Trigger the victory screen
     setStep('result');
     confetti({ 
       particleCount: 150, 
@@ -20,7 +18,6 @@ const LessonView = ({ lesson, onComplete, onExit }) => {
       colors: ['#6c5ce7', '#a29bfe', '#00b894'] 
     });
     
-    // Fire completion back to App.jsx after victory pause
     setTimeout(() => onComplete(earnedXP), 2500); 
   };
 
@@ -32,8 +29,20 @@ const LessonView = ({ lesson, onComplete, onExit }) => {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-body)', display: 'flex', flexDirection: 'column', padding: '15px' }}>
+      <style>{`
+        .video-wrapper { position: relative; width: 100%; paddingTop: 56.25%; background: #000; borderRadius: 20px; overflow: hidden; marginBottom: 30px; boxShadow: 0 20px 50px rgba(0,0,0,0.4); border: 1px solid var(--card-border); }
+        .lesson-header-text { margin: 0; color: var(--text-primary); fontSize: 20px; fontWeight: bold; }
+        .victory-text { color: var(--text-primary); fontSize: 32px; marginBottom: 10px; }
+        
+        @media (max-width: 600px) {
+          .lesson-header-text { font-size: 16px; }
+          .victory-text { font-size: 24px; }
+          .xp-earned-badge { font-size: 24px !important; padding: 15px 30px !important; }
+          .video-wrapper { margin-bottom: 20px; }
+          .knowledge-check-btn { padding: 15px !important; font-size: 16px !important; }
+        }
+      `}</style>
       
-      {/* --- HEADER --- */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', marginBottom: '30px' }}>
         <button onClick={onExit} className="glass-card" style={{ 
             alignSelf: 'flex-start', border: '1px solid var(--card-border)', background: 'transparent', 
@@ -42,22 +51,16 @@ const LessonView = ({ lesson, onComplete, onExit }) => {
         }}>
           <FaArrowLeft /> Back to Modules
         </button>
-        <h2 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '20px', fontWeight: 'bold' }}>
+        <h2 className="lesson-header-text">
             {lesson.module}: {lesson.title}
         </h2>
       </div>
 
       <div className="glass-card" style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '15px', position: 'relative', borderRadius: '24px' }}>
         
-        {/* --- STEP 1: VIDEO LESSON --- */}
         {step === 'video' && (
           <div style={{ width: '100%', maxWidth: '800px', textAlign: 'center' }}>
-            <div style={{ 
-                position: 'relative', width: '100%', paddingTop: '56.25%', 
-                background: '#000', borderRadius: '20px', overflow: 'hidden', 
-                marginBottom: '30px', boxShadow: '0 20px 50px rgba(0,0,0,0.4)',
-                border: '1px solid var(--card-border)'
-            }}>
+            <div className="video-wrapper">
               <iframe 
                 style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
                 src={`https://www.youtube.com/embed/${lesson.videoId}`} 
@@ -67,39 +70,30 @@ const LessonView = ({ lesson, onComplete, onExit }) => {
               ></iframe>
             </div>
 
-            <button onClick={() => setStep('quiz')} style={{ 
+            <button onClick={() => setStep('quiz')} className="knowledge-check-btn" style={{ 
                 width: '100%', padding: '18px', fontSize: '18px', borderRadius: '15px', 
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
                 background: '#6c5ce7', color: 'white', border: 'none', 
                 fontWeight: '900', cursor: 'pointer', transition: 'all 0.3s ease',
                 boxShadow: '0 10px 20px rgba(108, 92, 231, 0.3)'
-            }} onMouseOver={e => {
-              e.currentTarget.style.transform = 'translateY(-3px)';
-              e.currentTarget.style.boxShadow = '0 15px 30px rgba(108, 92, 231, 0.4)';
-            }} onMouseOut={e => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 10px 20px rgba(108, 92, 231, 0.3)';
             }}>
               Commence Knowledge Check <FaForward />
             </button>
           </div>
         )}
 
-        {/* --- STEP 2: THE AI ADAPTIVE QUIZ --- */}
         {step === 'quiz' && (
           <div style={{ width: '100%', maxWidth: '800px' }}>
-            {/* ✅ FIXED: Using lesson._id for MongoDB compatibility */}
             <AdaptiveQuiz lessonId={`lesson-00${lesson._id}`} onComplete={handleQuizComplete} />
           </div>
         )}
 
-        {/* --- STEP 3: VICTORY SCREEN --- */}
         {step === 'result' && (
           <div style={{ textAlign: 'center', animation: 'fadeIn 1s ease-out' }}>
-             <div style={{ fontSize: '100px', marginBottom: '20px' }}>🏆</div>
-             <h1 style={{ color: 'var(--text-primary)', fontSize: '32px', marginBottom: '10px' }}>Module Complete!</h1>
-             <p style={{ color: 'var(--text-secondary)', fontSize: '16px' }}>Syncing your academic record to the VICI cloud...</p>
-             <div style={{ 
+             <div style={{ fontSize: '80px', marginBottom: '20px' }}>🏆</div>
+             <h1 className="victory-text">Module Complete!</h1>
+             <p style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Syncing academic record...</p>
+             <div className="xp-earned-badge" style={{ 
                marginTop: '30px', 
                padding: '20px 40px', 
                borderRadius: '20px',
