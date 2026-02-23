@@ -1,19 +1,16 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { motion } from 'framer-motion'; // ✅ Added for animations
+import { motion } from 'framer-motion';
+import html2pdf from 'html2pdf.js'; 
 import Flashcard from '../components/Flashcard';
-import Toast from '../components/Toast'; // ✅ Added for Gamified rewards
-import { FaCloudUploadAlt, FaBrain, FaFileAlt, FaChevronLeft } from 'react-icons/fa';
+import { FaCloudUploadAlt, FaBrain, FaFileAlt, FaChevronLeft, FaRegFilePdf, FaDownload } from 'react-icons/fa';
 
-const StudyDashboard = ({ userId, onNavigate }) => {
+const StudyDashboard = ({ userId, onNavigate, showToast }) => {
   const [materials, setMaterials] = useState([]);
   const [selectedMaterial, setSelectedMaterial] = useState(null);
   const [aiResult, setAiResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  
-  // ✅ Toast State for Rewards
-  const [toast, setToast] = useState(null);
 
   const API_URL = 'https://elearning-api-dr6r.onrender.com/api/study-vault';
 
@@ -22,13 +19,26 @@ const StudyDashboard = ({ userId, onNavigate }) => {
       const res = await axios.get(`${API_URL}/user/${userId}`);
       setMaterials(res.data);
     } catch (err) {
-      console.error("Failed to fetch library:", err);
+      console.error("Library fetch failed:", err);
     }
   };
 
   useEffect(() => { 
     if (userId) fetchMaterials(); 
   }, [userId]);
+
+  const downloadSummaryPDF = () => {
+    const element = document.getElementById('note-paper-content');
+    const opt = {
+      margin:       [15, 15],
+      filename:     `${selectedMaterial?.title}_Summary.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    html2pdf().set(opt).from(element).save();
+    showToast("Generating PDF...", "success");
+  };
 
   const handleUpload = async (e) => {
     const file = e.target.files[0];
@@ -42,20 +52,17 @@ const StudyDashboard = ({ userId, onNavigate }) => {
     try {
       await axios.post(`${API_URL}/upload`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
-        onUploadProgress: (progressEvent) => {
-          const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          setUploadProgress(percentCompleted);
+        onUploadProgress: (p) => {
+          setUploadProgress(Math.round((p.loaded * 100) / p.total));
         }
       });
       setUploadProgress(0);
       fetchMaterials();
-      
-      // ✅ Trigger Reward Toast
-      setToast({ message: "Coursework Indexed!", type: "reward", xpAmount: 50 });
+      showToast("Material Indexed!", "reward", 50);
     } catch (err) { 
-      console.error("Upload Error:", err.response?.data || err.message);
       setUploadProgress(0);
-      setToast({ message: "Upload failed. Try a smaller file.", type: "error" });
+      const serverMsg = err.response?.data?.message || "Upload failed. Check connection.";
+      showToast(serverMsg, "error");
     }
   };
 
@@ -64,133 +71,143 @@ const StudyDashboard = ({ userId, onNavigate }) => {
     setAiResult(null); 
     try {
       const res = await axios.post(`${API_URL}/generate-study-material`, { 
-        materialId, 
-        userId, 
-        type 
+        materialId, userId, type 
       });
       
       let content = res.data.data;
       if (type === 'flashcards') {
-        try {
-          content = typeof content === 'string' ? JSON.parse(content) : content;
-        } catch (e) {
-          console.error("JSON Parse Error:", e);
-        }
+        const cleanJson = content.replace(/```json|```/g, "").trim();
+        content = JSON.parse(cleanJson);
       }
-      
       setAiResult({ type, content });
-      // ✅ Trigger AI Engagement Reward
-      setToast({ message: "Knowledge Strategy Generated!", type: "reward", xpAmount: 20 });
+      showToast("AI Strategy Generated!", "reward", 20);
     } catch (err) { 
-      console.error("AI Error:", err);
-      setToast({ message: "The AI tutor is busy. Try again soon.", type: "error" });
+      showToast("AI is recalibrating. Try again soon.", "error");
     }
     setLoading(false);
   };
 
   return (
     <div style={{ padding: '25px', background: 'var(--bg-body)', minHeight: '100vh', color: 'var(--text-primary)' }}>
+      {/* 🎨 ALL CSS BLOCKS RESTORED */}
       <style>{`
         .note-paper {
           background: #fff9db; 
           background-image: linear-gradient(#e5e5e5 1px, transparent 1px);
           background-size: 100% 30px;
           border-left: 2px solid #ffadad;
-          padding: 30px 40px 30px 60px;
+          padding: 40px 40px 40px 60px;
           line-height: 30px;
-          box-shadow: 5px 5px 15px rgba(0,0,0,0.1);
+          box-shadow: 10px 10px 25px rgba(0,0,0,0.1);
           color: #2d3436; font-family: 'Inter', sans-serif;
-          border-radius: 8px;
+          border-radius: 12px; position: relative;
+        }
+        .note-paper::before {
+          content: ''; position: absolute; top: 0; left: 45px;
+          width: 2px; height: 100%; background: #ffadad;
+        }
+        .progress-bar-container {
+          width: 100%; height: 8px; background: rgba(255,255,255,0.1);
+          border-radius: 10px; margin-top: 10px; overflow: hidden;
+          border: 1px solid rgba(255,255,255,0.2);
         }
         .progress-bar-inner {
-          height: 100%; background: #2ecc71; transition: width 0.3s ease; border-radius: 10px;
+          height: 100%; background: #2ecc71; transition: width 0.3s ease;
         }
-        .material-item:hover { border-color: var(--accent-color); transform: translateX(5px); }
+        .material-card {
+          padding: 20px; cursor: pointer; transition: all 0.3s ease;
+          border: 1px solid var(--card-border);
+        }
+        .material-card:hover {
+          border-color: #6c5ce7; transform: translateY(-3px);
+          box-shadow: 0 5px 15px rgba(108, 92, 231, 0.2);
+        }
       `}</style>
 
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+      {/* Universal Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-          <button onClick={() => onNavigate('dashboard')} style={{ background: 'transparent', border: 'none', color: 'var(--text-primary)', cursor: 'pointer' }}><FaChevronLeft size={20}/></button>
-          <h1 style={{ fontWeight: 900, fontSize: '24px', margin: 0 }}><FaBrain color="#2ecc71" /> Study Vault</h1>
+          <button onClick={() => onNavigate('dashboard')} style={{ background: 'var(--glass-bg)', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', padding: '10px', borderRadius: '12px' }}>
+            <FaChevronLeft size={20}/>
+          </button>
+          <div>
+            <h1 style={{ fontWeight: 900, fontSize: '28px', margin: 0 }}>
+              <FaBrain color="#6c5ce7" style={{ marginRight: '10px' }} /> Study Vault
+            </h1>
+            <p style={{ margin: 0, opacity: 0.6, fontSize: '11px', fontWeight: 700, letterSpacing: '1.5px' }}>UNIVERSAL ACADEMIC ENGINE</p>
+          </div>
         </div>
         
-        <div style={{ width: '250px' }}>
-          <label className="glass-card" style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px 20px', cursor: 'pointer', fontSize: '12px', fontWeight: 900, border: '1.5px solid #2ecc71' }}>
-            <FaCloudUploadAlt size={18}/> UPLOAD BABCOCK NOTES
+        <div style={{ width: '300px' }}>
+          <label className="glass-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: '15px 20px', cursor: 'pointer', fontSize: '12px', fontWeight: 900, border: '2px solid #2ecc71', color: '#2ecc71' }}>
+            <FaCloudUploadAlt size={22}/> IMPORT COURSE NOTES
             <input type="file" hidden onChange={handleUpload} />
           </label>
           {uploadProgress > 0 && (
-            <div style={{ width: '100%', height: '8px', background: 'rgba(255,255,255,0.1)', borderRadius: '10px', marginTop: '10px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.2)' }}>
+            <div className="progress-bar-container">
               <div className="progress-bar-inner" style={{ width: `${uploadProgress}%` }} />
             </div>
           )}
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', gap: '30px' }}>
-        {/* Sidebar: Materials */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          <h3 style={{ fontSize: '14px', textTransform: 'uppercase', opacity: 0.6, fontWeight: 900, letterSpacing: '1px' }}>Your Library</h3>
-          {materials.length === 0 ? <p style={{ fontSize: '13px', opacity: 0.5 }}>No notes uploaded yet.</p> : materials.map(m => (
-            <div key={m._id} className="glass-card material-item" style={{ padding: '18px', cursor: 'pointer', transition: '0.2s', border: selectedMaterial?._id === m._id ? '2px solid #2ecc71' : '1px solid var(--card-border)' }} onClick={() => setSelectedMaterial(m)}>
-              <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.title}</h4>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button onClick={(e) => { e.stopPropagation(); generateAI(m._id, 'summary'); }} style={{ flex: 1, background: '#6c5ce7', color: 'white', border: 'none', padding: '6px', borderRadius: '6px', fontSize: '10px', fontWeight: 800, cursor: 'pointer' }}>SUMMARIZE</button>
-                <button onClick={(e) => { e.stopPropagation(); generateAI(m._id, 'flashcards'); }} style={{ flex: 1, background: 'transparent', border: '1.5px solid #6c5ce7', color: '#6c5ce7', padding: '6px', borderRadius: '6px', fontSize: '10px', fontWeight: 800, cursor: 'pointer' }}>FLASHCARDS</button>
+      <div style={{ display: 'grid', gridTemplateColumns: '350px 1fr', gap: '40px' }}>
+        {/* Sidebar: Library */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          <h3 style={{ fontSize: '13px', textTransform: 'uppercase', opacity: 0.5, fontWeight: 900 }}>Knowledge Base</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', maxHeight: '70vh', overflowY: 'auto' }}>
+            {materials.map(m => (
+              <div 
+                key={m._id} 
+                className="glass-card material-card" 
+                style={{ border: selectedMaterial?._id === m._id ? '2px solid #6c5ce7' : '1px solid var(--card-border)' }} 
+                onClick={() => setSelectedMaterial(m)}
+              >
+                <h4 style={{ margin: '0 0 15px 0', fontSize: '14px', fontWeight: 800 }}>{m.title}</h4>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button onClick={(e) => { e.stopPropagation(); generateAI(m._id, 'summary'); }} style={{ flex: 1, background: '#6c5ce7', color: 'white', border: 'none', padding: '8px', borderRadius: '8px', fontSize: '10px', fontWeight: 900, cursor: 'pointer' }}>SUMMARIZE</button>
+                  <button onClick={(e) => { e.stopPropagation(); generateAI(m._id, 'flashcards'); }} style={{ flex: 1, background: 'transparent', border: '1.5px solid #6c5ce7', color: '#6c5ce7', padding: '8px', borderRadius: '8px', fontSize: '10px', fontWeight: 900, cursor: 'pointer' }}>FLASHCARDS</button>
+                </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
 
-        {/* Main: Display Area */}
+        {/* Display Area */}
         <div className="display-area">
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '100px', background: 'rgba(255,255,255,0.03)', borderRadius: '20px', border: '2px dashed var(--card-border)' }}>
-              <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2, ease: "linear" }} style={{ display: 'inline-block', marginBottom: '15px' }}>
-                <FaBrain size={40} color="#6c5ce7" />
+            <div style={{ textAlign: 'center', padding: '100px' }}>
+              <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2, ease: "linear" }}>
+                <FaBrain size={50} color="#6c5ce7" />
               </motion.div>
-              <h2 style={{ fontWeight: 900 }}>AI is reading your notes...</h2>
-              <p style={{ fontSize: '14px', opacity: 0.7 }}>Analyzing content for academic precision. +20 XP incoming!</p>
+              <h2 style={{ fontWeight: 900, marginTop: '20px' }}>Distilling key concepts...</h2>
             </div>
           ) : aiResult ? (
             aiResult.type === 'summary' ? (
-              <div className="note-paper">
-                <h2 style={{ marginBottom: '25px', color: '#d63031', fontWeight: 900, fontSize: '22px', borderBottom: '2px solid #ffadad', paddingBottom: '10px' }}>
-                  Academic Summary: {selectedMaterial?.title}
-                </h2>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {aiResult.content.split('\n').filter(line => line.trim()).map((line, i) => (
-                    <p key={i} style={{ margin: 0 }}>{line.startsWith('*') || line.startsWith('-') ? line : `• ${line}`}</p>
+              <div style={{ position: 'relative' }}>
+                <button onClick={downloadSummaryPDF} style={{ position: 'absolute', top: '-55px', right: '0', background: '#2ecc71', color: 'white', border: 'none', padding: '10px 20px', borderRadius: '10px', fontWeight: 900, fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <FaDownload /> SAVE AS PDF
+                </button>
+                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="note-paper" id="note-paper-content">
+                  <h2 style={{ color: '#d63031', fontWeight: 900, fontSize: '24px', marginBottom: '25px', textTransform: 'uppercase' }}>{selectedMaterial?.title}</h2>
+                  {aiResult.content.split('\n').filter(l => l.trim()).map((line, i) => (
+                    <p key={i} style={{ margin: 0, fontSize: '16px', fontWeight: 600 }}>{line.startsWith('*') ? line : `• ${line}`}</p>
                   ))}
-                </div>
+                </motion.div>
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '25px' }}>
-                {Array.isArray(aiResult.content) && aiResult.content.map((card, i) => (
-                  <Flashcard key={i} question={card.question} answer={card.answer} />
-                ))}
+                {aiResult.content.map((card, i) => <Flashcard key={i} {...card} />)}
               </div>
             )
           ) : (
-            <div style={{ textAlign: 'center', color: 'var(--text-secondary)', marginTop: '100px', opacity: 0.4 }}>
-              <FaFileAlt size={60} style={{ marginBottom: '20px' }} />
-              <h2 style={{ fontWeight: 800 }}>Select a file to start studying</h2>
-              <p>Your Babcock materials will appear here once processed.</p>
+            <div style={{ textAlign: 'center', opacity: 0.3, marginTop: '150px' }}>
+              <FaFileAlt size={80} />
+              <h2 style={{ fontWeight: 900 }}>Select a file to begin</h2>
             </div>
           )}
         </div>
       </div>
-
-      {/* ✅ NEW: Gamified Toast System */}
-      {toast && (
-        <Toast 
-          message={toast.message} 
-          type={toast.type} 
-          xpAmount={toast.xpAmount} 
-          onClose={() => setToast(null)} 
-        />
-      )}
     </div>
   );
 };
