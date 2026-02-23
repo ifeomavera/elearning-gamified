@@ -37,12 +37,17 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
       jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
     html2pdf().set(opt).from(element).save();
-    showToast("Generating PDF...", "success");
+    showToast("Generating PDF summary...", "success");
   };
 
   const handleUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      showToast("File exceeds 10MB limit.", "error");
+      return;
+    }
 
     const formData = new FormData();
     formData.append('file', file);
@@ -80,7 +85,7 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
         content = JSON.parse(cleanJson);
       }
       setAiResult({ type, content });
-      showToast("AI Strategy Generated!", "reward", 20);
+      showToast("AI Distillation Complete!", "reward", 20);
     } catch (err) { 
       showToast("AI is recalibrating. Try again soon.", "error");
     }
@@ -89,7 +94,6 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
 
   return (
     <div style={{ padding: '25px', background: 'var(--bg-body)', minHeight: '100vh', color: 'var(--text-primary)' }}>
-      {/* 🎨 ALL CSS BLOCKS RESTORED */}
       <style>{`
         .note-paper {
           background: #fff9db; 
@@ -152,7 +156,6 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '350px 1fr', gap: '40px' }}>
-        {/* Sidebar: Library */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <h3 style={{ fontSize: '13px', textTransform: 'uppercase', opacity: 0.5, fontWeight: 900 }}>Knowledge Base</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', maxHeight: '70vh', overflowY: 'auto' }}>
@@ -173,14 +176,13 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
           </div>
         </div>
 
-        {/* Display Area */}
         <div className="display-area">
           {loading ? (
             <div style={{ textAlign: 'center', padding: '100px' }}>
               <motion.div animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 2, ease: "linear" }}>
                 <FaBrain size={50} color="#6c5ce7" />
               </motion.div>
-              <h2 style={{ fontWeight: 900, marginTop: '20px' }}>Distilling key concepts...</h2>
+              <h2 style={{ fontWeight: 900, marginTop: '20px' }}>Distilling your concepts...</h2>
             </div>
           ) : aiResult ? (
             aiResult.type === 'summary' ? (
