@@ -37,15 +37,16 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
       jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
     html2pdf().set(opt).from(element).save();
-    showToast("Generating PDF summary...", "success");
+    showToast("Generating PDF...", "success");
   };
 
   const handleUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
+    // ✅ Client-side check for 10MB
     if (file.size > 10 * 1024 * 1024) {
-      showToast("File exceeds 10MB limit.", "error");
+      showToast("File is too large. Max limit is 10MB.", "error");
       return;
     }
 
@@ -57,6 +58,7 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
     try {
       await axios.post(`${API_URL}/upload`, formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
+        timeout: 60000, // 60s timeout for stability
         onUploadProgress: (p) => {
           setUploadProgress(Math.round((p.loaded * 100) / p.total));
         }
@@ -66,7 +68,7 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
       showToast("Material Indexed!", "reward", 50);
     } catch (err) { 
       setUploadProgress(0);
-      const serverMsg = err.response?.data?.message || "Upload failed. Check connection.";
+      const serverMsg = err.response?.data?.message || "Upload failed. Check your network connection.";
       showToast(serverMsg, "error");
     }
   };
@@ -94,6 +96,7 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
 
   return (
     <div style={{ padding: '25px', background: 'var(--bg-body)', minHeight: '100vh', color: 'var(--text-primary)' }}>
+      {/* 🎨 CSS Styles Restored */}
       <style>{`
         .note-paper {
           background: #fff9db; 
