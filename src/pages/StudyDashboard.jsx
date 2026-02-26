@@ -1,9 +1,10 @@
+// src/pages/StudyDashboard.jsx
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../utils/api';
 import { motion } from 'framer-motion';
 import html2pdf from 'html2pdf.js'; 
 import Flashcard from '../components/Flashcard';
-import { FaCloudUploadAlt, FaBrain, FaFileAlt, FaChevronLeft, FaRegFilePdf, FaDownload } from 'react-icons/fa';
+import { FaCloudUploadAlt, FaBrain, FaFileAlt, FaChevronLeft, FaDownload } from 'react-icons/fa';
 
 const StudyDashboard = ({ userId, onNavigate, showToast }) => {
   const [materials, setMaterials] = useState([]);
@@ -12,14 +13,13 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
 
-  const API_URL = 'https://elearning-api-dr6r.onrender.com/api/study-vault';
-
   const fetchMaterials = async () => {
     try {
-      const res = await axios.get(`${API_URL}/user/${userId}`);
+      const res = await api.get(`/study-vault/user/${userId}`);
       setMaterials(res.data);
     } catch (err) {
       console.error("Library fetch failed:", err);
+      showToast("Could not load your vault", "error");
     }
   };
 
@@ -30,11 +30,11 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
   const downloadSummaryPDF = () => {
     const element = document.getElementById('note-paper-content');
     const opt = {
-      margin:       [15, 15],
-      filename:     `${selectedMaterial?.title}_Summary.pdf`,
-      image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true },
-      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      margin: [15, 15],
+      filename: `${selectedMaterial?.title}_Summary.pdf`,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
     html2pdf().set(opt).from(element).save();
     showToast("Generating PDF...", "success");
@@ -44,7 +44,6 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // ✅ Client-side check for 10MB
     if (file.size > 10 * 1024 * 1024) {
       showToast("File is too large. Max limit is 10MB.", "error");
       return;
@@ -56,20 +55,20 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
     formData.append('title', file.name);
 
     try {
-      await axios.post(`${API_URL}/upload`, formData, {
+      await api.post('/study-vault/upload', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
-        timeout: 60000, // 60s timeout for stability
         onUploadProgress: (p) => {
           setUploadProgress(Math.round((p.loaded * 100) / p.total));
         }
       });
       setUploadProgress(0);
       fetchMaterials();
-      showToast("Material Indexed!", "reward", 50);
-    } catch (err) { 
+      showToast("Material Indexed! ✅", "reward", 50);
+    } catch (err) {
       setUploadProgress(0);
-      const serverMsg = err.response?.data?.message || "Upload failed. Check your network connection.";
-      showToast(serverMsg, "error");
+      const serverMsg = err.response?.data?.message || err.message || "Upload failed";
+      console.error("Upload full error:", err.response?.data || err);
+      showToast(`Upload failed: ${serverMsg}`, "error");
     }
   };
 
@@ -77,7 +76,7 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
     setLoading(true);
     setAiResult(null); 
     try {
-      const res = await axios.post(`${API_URL}/generate-study-material`, { 
+      const res = await api.post('/study-vault/generate-study-material', { 
         materialId, userId, type 
       });
       
@@ -87,16 +86,18 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
         content = JSON.parse(cleanJson);
       }
       setAiResult({ type, content });
-      showToast("AI Distillation Complete!", "reward", 20);
-    } catch (err) { 
-      showToast("AI is recalibrating. Try again soon.", "error");
+      showToast("AI Distillation Complete! 🎉", "reward", 20);
+    } catch (err) {
+      const serverMsg = err.response?.data?.message || err.message || "AI failed";
+      console.error("Generate AI full error:", err.response?.data || err);
+      showToast(`AI Error: ${serverMsg}`, "error");
     }
     setLoading(false);
   };
 
   return (
     <div style={{ padding: '25px', background: 'var(--bg-body)', minHeight: '100vh', color: 'var(--text-primary)' }}>
-      {/* 🎨 CSS Styles Restored */}
+      {/* Your existing styles and JSX — unchanged */}
       <style>{`
         .note-paper {
           background: #fff9db; 

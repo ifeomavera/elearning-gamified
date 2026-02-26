@@ -12,9 +12,11 @@ import Stats from './pages/Stats';
 import CourseCatalog from './pages/CourseCatalog';
 import LessonView from './pages/LessonView';
 import StudyDashboard from './pages/StudyDashboard'; 
+import Credits from './pages/Credits'; 
+import FindFriends from './pages/FindFriends'; 
 import ChatBox from './components/ChatBox'; 
 import Banned from './pages/Banned'; 
-import Toast from './components/Toast'; // ✅ Import your upgraded Toast
+import Toast from './components/Toast'; 
 import axios from 'axios';
 
 const ProtectedRoute = ({ user, isBanned, children }) => {
@@ -34,15 +36,12 @@ function App() {
   const [theme, setTheme] = useState(() => localStorage.getItem('appTheme') || 'light');
   const [activeLesson, setActiveLesson] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-
-  // ✅ GLOBAL TOAST STATE
   const [toastConfig, setToastConfig] = useState(null);
 
   const showToast = (message, type = 'success', xpAmount = null) => {
     setToastConfig({ message, type, xpAmount });
   };
 
-  // ✅ SESSION SECURITY: Auto-logout after 30 minutes
   useEffect(() => {
     if (!user) return;
     const checkInactivity = () => {
@@ -94,7 +93,10 @@ function App() {
   };
 
   const handleLogout = () => {
-    setUser(null); setCurrentId(null); localStorage.clear(); navigate('/login');
+    setUser(null);
+    setCurrentId(null);
+    localStorage.clear();
+    navigate('/login');
   };
 
   const handleLessonComplete = async (earnedXP, quizStats) => {
@@ -108,7 +110,7 @@ function App() {
         stats: quizStats
       });
       setRefreshTrigger(prev => prev + 1);
-      showToast("Milestone Cleared!", "reward", earnedXP); // ✅ Using Reward Toast
+      showToast("Milestone Cleared!", "reward", earnedXP); 
       navigate('/dashboard');
     } catch (err) { 
       showToast("Cloud sync failed.", "error"); 
@@ -117,7 +119,6 @@ function App() {
 
   return (
     <>
-      {/* ✅ RENDER GLOBAL TOAST */}
       {toastConfig && (
         <Toast 
           message={toastConfig.message} 
@@ -156,7 +157,7 @@ function App() {
             <StudyDashboard 
               userId={currentId} 
               onNavigate={(v) => navigate(`/${v}`)} 
-              showToast={showToast} // ✅ Pass the toast trigger here
+              showToast={showToast}
             />
           </ProtectedRoute>
         } />
@@ -166,6 +167,11 @@ function App() {
         <Route path="/course-catalog" element={<ProtectedRoute user={user} isBanned={isBanned}><CourseCatalog username={user} onNavigate={(v) => navigate(`/${v}`)} /></ProtectedRoute>} />
         <Route path="/stats" element={<ProtectedRoute user={user} isBanned={isBanned}><Stats username={user} onNavigate={(v) => navigate(`/${v}`)} refreshTrigger={refreshTrigger} /></ProtectedRoute>} />
         <Route path="/lesson" element={<ProtectedRoute user={user} isBanned={isBanned}><LessonView lesson={activeLesson} onComplete={handleLessonComplete} onExit={() => navigate('/dashboard')} /></ProtectedRoute>} />
+        
+        {/* ✅ THE MISSING ROUTES THAT WERE CAUSING LOGOUTS */}
+        <Route path="/credits" element={<ProtectedRoute user={user} isBanned={isBanned}><Credits onNavigate={(v) => navigate(`/${v}`)} /></ProtectedRoute>} />
+        <Route path="/find-friends" element={<ProtectedRoute user={user} isBanned={isBanned}><FindFriends username={user} onNavigate={(v) => navigate(`/${v}`)} /></ProtectedRoute>} />
+
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
       {activeChatFriend && currentId && !isBanned && <ChatBox currentUserId={currentId} friend={activeChatFriend} onClose={() => setActiveChatFriend(null)} />}
