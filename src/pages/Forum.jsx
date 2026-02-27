@@ -117,7 +117,7 @@ const Forum = ({ username, avatar, onNavigate }) => {
 
           {/* ✅ FIND FRIENDS BUTTON: Connects to Student Directory */}
           <button 
-            onClick={() => onNavigate('directory')}
+            onClick={() => onNavigate('find-friends')}
             className="glass-card"
             style={{ padding: '10px 20px', borderRadius: '20px', border: '1.5px solid var(--accent-color)', color: 'var(--accent-color)', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
           >

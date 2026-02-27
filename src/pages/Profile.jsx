@@ -30,15 +30,30 @@ const Profile = ({ onNavigate, onUpdateProfile, showToast }) => {
 
   const handleSave = async () => {
     try {
-      const updateData = { avatar: selectedAvatar, major, academicLevel };
-      await axios.put(`${apiUrl}/api/users/${name}/profile`, updateData);
+      // 1. Grab the original name you logged in with from local storage
+      const originalName = localStorage.getItem('currentUser'); 
       
+      // 2. Add the potentially new name to the payload
+      const updateData = { 
+        newName: name, // We send the new name here
+        avatar: selectedAvatar, 
+        major, 
+        academicLevel 
+      };
+      
+      // 3. Send the request to the ORIGINAL name's URL so the DB can find you
+      await axios.put(`${apiUrl}/api/users/${originalName}/profile`, updateData);
+      
+      // 4. Update local storage with the new name and avatar
       localStorage.setItem('currentUser', name); 
       localStorage.setItem('userAvatar', selectedAvatar); 
       onUpdateProfile(name, selectedAvatar); 
       
       showToast("Scholar Profile Updated!", "success");
-    } catch (err) { showToast("Save failed", "error"); }
+    } catch (err) { 
+      console.error(err);
+      showToast("Save failed", "error"); 
+    }
   };
 
   if (loading) return <div style={{ textAlign: 'center', padding: '100px', color: 'var(--text-primary)' }}>Loading Scholar Data...</div>;

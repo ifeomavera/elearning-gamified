@@ -7,7 +7,7 @@ import SocialInbox from '../components/SocialInbox';
 import { 
   FaBookOpen, FaPlus, FaChartLine, FaBars, FaCommentDots, 
   FaUser, FaUsers, FaSignOutAlt, FaTimes, FaMoon, FaSun, FaShieldAlt,
-  FaBrain // ✅ NEW: Icon for Study Vault
+  FaBrain 
 } from 'react-icons/fa';
 import axios from 'axios';
 
@@ -124,7 +124,6 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', color: 'var(--text-primary)', marginTop: '12px' }}><span>Accuracy</span><b>🎯 {stats.accuracy}%</b></div>
           </div>
           
-          {/* ✅ NEW: Quick Access to Study Vault from Sidebar */}
           <div className="action-card study-vault-card" onClick={() => onNavigate('study-vault')}>
             <FaBrain size={20} /> 
             <span>AI Study Vault</span>
@@ -179,13 +178,16 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
         <div style={{ padding: '30px 0', display: 'flex', flexDirection: 'column', height: '100%' }}>
           <button onClick={() => { onNavigate('profile'); setIsMenuOpen(false); }} className="vici-menu-item"><FaUser opacity={0.6} /> Profile Settings</button>
           
-          {/* ✅ NEW: Study Vault in Main Menu */}
           <button onClick={() => { onNavigate('study-vault'); setIsMenuOpen(false); }} className="vici-menu-item" style={{ color: '#2ecc71' }}>
             <FaBrain opacity={0.8} /> Personal Study Vault
           </button>
 
           <button onClick={() => { onNavigate('course-catalog'); setIsMenuOpen(false); }} className="vici-menu-item"><FaBookOpen opacity={0.6} /> Course Catalog</button>
           <button onClick={() => { onNavigate('forum'); setIsMenuOpen(false); }} className="vici-menu-item"><FaUsers opacity={0.6} /> Community</button>
+          
+          {/* ✅ THE NEW CREDITS BUTTON */}
+          <button onClick={() => { onNavigate('credits'); setIsMenuOpen(false); }} className="vici-menu-item">⭐ Credits</button>
+
           <button onClick={toggleTheme} className="vici-menu-item">{currentTheme === 'light' ? <FaMoon opacity={0.6} /> : <FaSun opacity={0.6} />} {currentTheme === 'light' ? "Dark Mode" : "Light Mode"}</button>
           <button onClick={onLogout} className="vici-menu-item" style={{ marginTop: 'auto', borderTop: '1px solid var(--card-border)', color: '#ff4757', padding: '25px 40px' }}><FaSignOutAlt /> Sign Out</button>
         </div>
