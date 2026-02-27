@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaCheckCircle, FaTimesCircle, FaBrain, FaArrowRight, FaLightbulb, FaCheck } from 'react-icons/fa';
 
-const AdaptiveQuiz = ({ lessonId, onComplete }) => {
+// ✅ Added onWrongAnswer and onCorrectAnswer to the props
+const AdaptiveQuiz = ({ lessonId, onComplete, onWrongAnswer, onCorrectAnswer }) => {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [askedTexts, setAskedTexts] = useState([]); 
@@ -94,7 +95,11 @@ const AdaptiveQuiz = ({ lessonId, onComplete }) => {
     }
 
     setShowExplanation(true);
+    
     if (correct) {
+      // ✅ TRIGGER BOSS DAMAGE
+      if (onCorrectAnswer) onCorrectAnswer();
+
       setConsecutiveCorrect(prev => prev + 1);
       setScore(score + (currentDifficulty * 10)); 
       setIsWrong(false);
@@ -103,6 +108,9 @@ const AdaptiveQuiz = ({ lessonId, onComplete }) => {
         setConsecutiveCorrect(0); 
       }
     } else {
+      // ✅ TRIGGER PLAYER DAMAGE
+      if (onWrongAnswer) onWrongAnswer();
+
       setIsWrong(true);
       setConsecutiveCorrect(0); 
       if (currentDifficulty > 1) setCurrentDifficulty(currentDifficulty - 1); 

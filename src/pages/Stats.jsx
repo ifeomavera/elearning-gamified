@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaArrowLeft, FaChartBar, FaChartPie, FaFire } from 'react-icons/fa';
+import { FaArrowLeft, FaChartBar, FaChartPie, FaFire, FaCode, FaFolderOpen, FaExternalLinkAlt } from 'react-icons/fa'; // ✅ Added portfolio icons
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import axios from 'axios';
 
@@ -8,6 +8,8 @@ const Stats = ({ username, onNavigate }) => {
   const [stats, setStats] = useState({ streak: 0, xp: 0, accuracy: 0 });
   const [activityData, setActivityData] = useState([]);
   const [accuracyData, setAccuracyData] = useState([]);
+  // ✅ NEW: State for practical missions
+  const [missions, setMissions] = useState([]); 
 
   const COLORS = ['#00b894', '#d63031'];
 
@@ -16,24 +18,30 @@ const Stats = ({ username, onNavigate }) => {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
         
-        // ✅ DYNAMIC FETCH: Pulling real calculations from the backend
-        const res = await axios.get(`${apiUrl}/api/users/${username}/stats`);
-        const data = res.data;
-
-        setStats({
-          streak: data.streak,
-          xp: data.xp,
-          accuracy: data.accuracy
-        });
-
-        // ✅ Map Pie Chart Data: Dynamically calculates remaining 'Incorrect' percentage
-        setAccuracyData([ 
-          { name: 'Correct', value: data.accuracy }, 
-          { name: 'Incorrect', value: 100 - data.accuracy } 
+        // Fetch stats and full user data to get missions
+        const [statsRes, userRes] = await Promise.all([
+          axios.get(`${apiUrl}/api/users/${username}/stats`),
+          axios.get(`${apiUrl}/api/users/${username}`)
         ]);
 
-        // ✅ Map Bar Chart Data: Injects the real weeklyActivity array from the backend
-        setActivityData(data.weeklyActivity);
+        const statsData = statsRes.data;
+        const userData = userRes.data;
+
+        setStats({
+          streak: statsData.streak,
+          xp: statsData.xp,
+          accuracy: statsData.accuracy
+        });
+
+        setAccuracyData([ 
+          { name: 'Correct', value: statsData.accuracy }, 
+          { name: 'Incorrect', value: 100 - statsData.accuracy } 
+        ]);
+
+        setActivityData(statsData.weeklyActivity);
+        
+        // ✅ Load missions from the user's record
+        setMissions(userData.missions || []);
 
       } catch (err) {
         console.error("Failed to fetch analytics:", err);
@@ -62,7 +70,7 @@ const Stats = ({ username, onNavigate }) => {
           <button 
             onClick={() => onNavigate('dashboard')} 
             className="glass-card" 
-            style={{ width: '45px', height: '45px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginRight: '20px', color: 'var(--text-primary)' }}>
+            style={{ width: '45px', height: '45px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginRight: '20px', color: 'var(--text-primary)', border: 'none' }}>
             <FaArrowLeft size={18} />
           </button>
           <div>
@@ -91,9 +99,7 @@ const Stats = ({ username, onNavigate }) => {
         </div>
 
         {/* CHARTS SECTION */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
-          
-          {/* Bar Chart */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '40px' }}>
           <div className="glass-card" style={{ padding: '20px', minHeight: '300px' }}>
             <h3 style={{ color: 'var(--text-primary)', marginBottom: '20px', fontSize: '18px' }}>Weekly Activity</h3>
             <div style={{ width: '100%', height: '200px' }}>
@@ -108,7 +114,6 @@ const Stats = ({ username, onNavigate }) => {
             </div>
           </div>
 
-          {/* Pie Chart */}
           <div className="glass-card" style={{ padding: '20px', minHeight: '300px' }}>
             <h3 style={{ color: 'var(--text-primary)', marginBottom: '20px', fontSize: '18px' }}>Quiz Performance</h3>
             <div style={{ width: '100%', height: '200px' }}>
@@ -130,8 +135,46 @@ const Stats = ({ username, onNavigate }) => {
               </div>
             </div>
           </div>
-
         </div>
+
+        {/* ✅ NEW: TECHNICAL PORTFOLIO SECTION */}
+        <div className="glass-card" style={{ padding: '30px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '25px' }}>
+            <FaFolderOpen color="var(--accent-color)" size={24} />
+            <h3 style={{ color: 'var(--text-primary)', margin: 0, fontSize: '20px' }}>Technical Portfolio</h3>
+          </div>
+
+          {missions.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
+              <FaCode size={40} style={{ opacity: 0.2, marginBottom: '15px' }} />
+              <p>No practical missions completed yet. Engage Guardians to build your portfolio!</p>
+            </div>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              {missions.map((mission, idx) => (
+                <div key={idx} style={{ padding: '20px', background: 'rgba(255,255,255,0.03)', borderRadius: '15px', border: '1px solid var(--card-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ color: 'var(--accent-color)', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '5px' }}>
+                      {mission.moduleName || 'Software Engineering Mission'}
+                    </div>
+                    <div style={{ color: 'var(--text-primary)', fontWeight: 'bold', fontSize: '16px', marginBottom: '10px' }}>
+                      {mission.lessonTitle}
+                    </div>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '13px', fontStyle: 'italic', background: 'rgba(0,0,0,0.2)', padding: '10px', borderRadius: '8px' }}>
+                      "{mission.submission}"
+                    </div>
+                  </div>
+                  <button 
+                    onClick={() => mission.submission.includes('http') && window.open(mission.submission, '_blank')}
+                    style={{ marginLeft: '20px', background: 'transparent', border: '1.5px solid var(--card-border)', color: 'var(--text-primary)', padding: '10px', borderRadius: '12px', cursor: 'pointer', display: mission.submission.includes('http') ? 'block' : 'none' }}>
+                    <FaExternalLinkAlt size={14} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
       </div>
     </div>
   );
