@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaCheckCircle, FaTimesCircle, FaBrain, FaArrowRight, FaLightbulb, FaCheck } from 'react-icons/fa';
 
-// ✅ Added onWrongAnswer and onCorrectAnswer to the props
+// ✅ Added onWrongAnswer and onCorrectAnswer to the props to trigger combat effects
 const AdaptiveQuiz = ({ lessonId, onComplete, onWrongAnswer, onCorrectAnswer }) => {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -97,7 +97,7 @@ const AdaptiveQuiz = ({ lessonId, onComplete, onWrongAnswer, onCorrectAnswer }) 
     setShowExplanation(true);
     
     if (correct) {
-      // ✅ TRIGGER BOSS DAMAGE
+      // ✅ SUCCESS: Damage the Guardian
       if (onCorrectAnswer) onCorrectAnswer();
 
       setConsecutiveCorrect(prev => prev + 1);
@@ -108,7 +108,7 @@ const AdaptiveQuiz = ({ lessonId, onComplete, onWrongAnswer, onCorrectAnswer }) 
         setConsecutiveCorrect(0); 
       }
     } else {
-      // ✅ TRIGGER PLAYER DAMAGE
+      // ✅ FAILURE: Damage the Player
       if (onWrongAnswer) onWrongAnswer();
 
       setIsWrong(true);

@@ -1,38 +1,48 @@
 import React, { useState } from 'react';
-import { FaArrowLeft, FaForward, FaHeart, FaSkull, FaRedo, FaGhost, FaCode, FaUpload } from 'react-icons/fa';
+import { 
+  FaArrowLeft, FaForward, FaHeart, FaSkull, FaRedo, FaGhost, 
+  FaCode, FaUpload, FaRobot, FaMicrochip, FaDatabase, FaShieldAlt 
+} from 'react-icons/fa';
 import confetti from 'canvas-confetti';
 import AdaptiveQuiz from '../components/AdaptiveQuiz'; 
 
 const LessonView = ({ lesson, onComplete, onExit }) => {
   const [step, setStep] = useState('video'); 
   const [finalXP, setFinalXP] = useState(0); 
-  // ✅ Practical mission state
   const [submission, setSubmission] = useState(""); 
   
   const [bossHP, setBossHP] = useState(100);
   const [playerHP, setPlayerHP] = useState(3); 
   const [isDamaged, setIsDamaged] = useState(false);
 
-  // ✅ New Logic: Boss takes damage on correct answer
+  // ✅ Universal Archetypes for a global audience
+  const getGuardianDetails = () => {
+    const module = lesson.module?.toLowerCase() || "";
+    if (module.includes('software')) return { icon: <FaCode />, color: '#6c5ce7', name: 'The Architect' };
+    if (module.includes('data')) return { icon: <FaDatabase />, color: '#0984e3', name: 'The Data Overlord' };
+    if (module.includes('security')) return { icon: <FaShieldAlt />, color: '#d63031', name: 'The Gatekeeper' };
+    if (module.includes('hardware')) return { icon: <FaMicrochip />, color: '#e17055', name: 'The Silicon Wraith' };
+    return { icon: <FaSkull />, color: '#ff4757', name: 'The Module Guardian' };
+  };
+
+  const guardian = getGuardianDetails();
+
   const onBossDamage = () => {
-    // Damage logic: Drop HP by 20% per correct answer (5 questions to win)
-    setBossHP(prev => Math.max(0, prev - 20));
+    setBossHP(prev => Math.max(0, prev - 20)); // Damage the boss by 20% per correct answer
   };
 
   const handleQuizComplete = (result) => {
-    // ✅ Mission completion adds a bonus to the final XP
-    const earnedXP = result.score + 100; 
+    const earnedXP = result.score + 100; // Bonus for defeating the Guardian
     setFinalXP(earnedXP);
     setBossHP(0); 
-    
     setStep('result');
     confetti({ 
       particleCount: 150, 
-      spread: 100,
-      colors: ['#6c5ce7', '#a29bfe', '#00b894'] 
+      spread: 100, 
+      colors: [guardian.color, '#a29bfe', '#00b894'] 
     });
     
-    // ✅ PASS SUBMISSION TO ONCOMPLETE
+    // Pass mission submission to the main App sync
     setTimeout(() => onComplete(earnedXP, { ...result, submission, moduleName: lesson.module }), 2500); 
   };
 
@@ -80,13 +90,13 @@ const LessonView = ({ lesson, onComplete, onExit }) => {
           border-radius: 10px; margin: 15px 0; overflow: hidden; border: 1px solid rgba(255,255,255,0.05);
         }
         .boss-hp-fill {
-          height: 100%; background: linear-gradient(90deg, #ff4757, #ff6b81);
+          height: 100%; background: linear-gradient(90deg, ${guardian.color}, #fff);
           transition: width 0.5s ease-out;
         }
         .heart-container { display: flex; gap: 8px; margin-bottom: 10px; }
-        .boss-avatar { font-size: 50px; filter: drop-shadow(0 0 15px #ff4757); }
+        .boss-avatar-frame { font-size: 50px; filter: drop-shadow(0 0 15px ${guardian.color}); animation: hover 3s ease-in-out infinite; }
+        @keyframes hover { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
         .gameover-title { color: #ff4757; font-size: 42px; font-weight: 900; margin-bottom: 20px; text-transform: uppercase; }
-        
         .mission-input {
           width: 100%; padding: 15px; border-radius: 12px; background: rgba(0,0,0,0.2);
           border: 1px solid var(--card-border); color: var(--text-primary);
@@ -113,8 +123,8 @@ const LessonView = ({ lesson, onComplete, onExit }) => {
             <h2 className="lesson-header-text">{lesson.module}: {lesson.title}</h2>
           </div>
           <div style={{ textAlign: 'right' }}>
-            <div className="boss-avatar"><FaSkull /></div>
-            <span style={{ fontSize: '10px', fontWeight: '900', color: '#ff4757', letterSpacing: '1px' }}>MODULE GUARDIAN</span>
+            <div className="boss-avatar-frame" style={{ color: guardian.color }}>{guardian.icon}</div>
+            <span style={{ fontSize: '10px', fontWeight: '900', color: guardian.color, letterSpacing: '1px' }}>{guardian.name}</span>
           </div>
         </div>
 
@@ -137,7 +147,7 @@ const LessonView = ({ lesson, onComplete, onExit }) => {
             <button onClick={() => setStep('mission')} className="knowledge-check-btn" style={{ 
                 width: '100%', padding: '18px', fontSize: '18px', borderRadius: '15px', 
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px',
-                background: 'var(--accent-color)', color: 'white', border: 'none', fontWeight: '900', cursor: 'pointer'
+                background: guardian.color, color: 'white', border: 'none', fontWeight: '900', cursor: 'pointer'
             }}>
               Accept Mission <FaCode />
             </button>
@@ -148,7 +158,7 @@ const LessonView = ({ lesson, onComplete, onExit }) => {
           <div style={{ width: '100%', maxWidth: '600px', textAlign: 'center' }}>
             <h2 style={{ color: 'var(--text-primary)', marginBottom: '10px' }}>Mission Objective</h2>
             <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '25px' }}>
-              Provide your solution link (GitHub/CodePen) or a brief technical summary of your approach to unlock the Guardian battle.
+              Provide a solution link or a brief technical summary of your approach to unlock the battle.
             </p>
             <textarea 
               className="mission-input" 
@@ -166,7 +176,7 @@ const LessonView = ({ lesson, onComplete, onExit }) => {
                 color: 'white', border: 'none', fontWeight: '900', cursor: 'pointer'
               }}
             >
-              Submit & Engage Guardian <FaUpload />
+              Submit & Engage {guardian.name} <FaUpload />
             </button>
           </div>
         )}
@@ -177,21 +187,20 @@ const LessonView = ({ lesson, onComplete, onExit }) => {
               lessonId={`lesson-00${lesson._id}`} 
               onComplete={handleQuizComplete} 
               onWrongAnswer={onWrongAnswer}
-              onCorrectAnswer={onBossDamage} // ✅ LINKED BOSS DAMAGE HERE
+              onCorrectAnswer={onBossDamage} 
             />
           </div>
         )}
 
         {step === 'gameover' && (
-          <div style={{ textAlign: 'center', animation: 'fadeIn 0.5s' }}>
+          <div style={{ textAlign: 'center' }}>
              <FaGhost size={80} color="#ff4757" style={{ marginBottom: '20px' }} />
              <h1 className="gameover-title">Mission Failed</h1>
-             <p style={{ color: 'var(--text-secondary)', marginBottom: '30px' }}>The Guardian was too powerful. Study the material and try again.</p>
              <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
-                <button onClick={handleRetry} className="btn-primary" style={{ padding: '15px 30px', display: 'flex', alignItems: 'center', gap: '10px', background: '#ff4757' }}>
+                <button onClick={handleRetry} className="btn-primary" style={{ padding: '15px 30px', background: '#ff4757' }}>
                    <FaRedo /> Restart Battle
                 </button>
-                <button onClick={onExit} style={{ padding: '15px 30px', background: 'transparent', border: '1px solid var(--card-border)', color: 'var(--text-primary)', borderRadius: '12px', cursor: 'pointer' }}>
+                <button onClick={onExit} style={{ padding: '15px 30px', background: 'transparent', border: '1px solid var(--card-border)', color: 'var(--text-primary)', borderRadius: '12px' }}>
                    Retreat
                 </button>
              </div>
@@ -201,7 +210,7 @@ const LessonView = ({ lesson, onComplete, onExit }) => {
         {step === 'result' && (
           <div style={{ textAlign: 'center' }}>
              <div style={{ fontSize: '80px', marginBottom: '20px' }}>⚔️</div>
-             <h1 className="victory-text">Guardian Defeated!</h1>
+             <h1 className="victory-text">{guardian.name} Defeated!</h1>
              <div className="xp-earned-badge" style={{ 
                marginTop: '30px', padding: '20px 40px', borderRadius: '20px',
                background: 'rgba(46, 204, 113, 0.1)', border: '2px solid #2ecc71',

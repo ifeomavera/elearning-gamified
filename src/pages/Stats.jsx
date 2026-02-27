@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { FaArrowLeft, FaChartBar, FaChartPie, FaFire, FaCode, FaFolderOpen, FaExternalLinkAlt } from 'react-icons/fa'; // ✅ Added portfolio icons
+import { FaArrowLeft, FaChartBar, FaChartPie, FaFire, FaCode, FaFolderOpen, FaExternalLinkAlt } from 'react-icons/fa';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import axios from 'axios';
 
@@ -8,7 +8,6 @@ const Stats = ({ username, onNavigate }) => {
   const [stats, setStats] = useState({ streak: 0, xp: 0, accuracy: 0 });
   const [activityData, setActivityData] = useState([]);
   const [accuracyData, setAccuracyData] = useState([]);
-  // ✅ NEW: State for practical missions
   const [missions, setMissions] = useState([]); 
 
   const COLORS = ['#00b894', '#d63031'];
@@ -17,8 +16,6 @@ const Stats = ({ username, onNavigate }) => {
     const fetchUserStats = async () => {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-        
-        // Fetch stats and full user data to get missions
         const [statsRes, userRes] = await Promise.all([
           axios.get(`${apiUrl}/api/users/${username}/stats`),
           axios.get(`${apiUrl}/api/users/${username}`)
@@ -39,8 +36,6 @@ const Stats = ({ username, onNavigate }) => {
         ]);
 
         setActivityData(statsData.weeklyActivity);
-        
-        // ✅ Load missions from the user's record
         setMissions(userData.missions || []);
 
       } catch (err) {
@@ -83,7 +78,7 @@ const Stats = ({ username, onNavigate }) => {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '15px', marginBottom: '40px' }}>
           <div className="glass-card" style={{ padding: '20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <FaFire size={30} color="#e17055" />
-            <h2 style={{ margin: '10px 0 0 0', color: 'var(--text-primary)', fontSize: '20px' }}>{stats.streak} {stats.streak === 1 ? 'Day' : 'Days'}</h2>
+            <h2 style={{ margin: '10px 0 0 0', color: 'var(--text-primary)', fontSize: '20px' }}>{stats.streak} Days</h2>
             <span style={{ color: 'var(--text-secondary)', fontSize: '14px' }}>Current Streak</span>
           </div>
           <div className="glass-card" style={{ padding: '20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
@@ -98,7 +93,7 @@ const Stats = ({ username, onNavigate }) => {
           </div>
         </div>
 
-        {/* CHARTS SECTION */}
+        {/* CHARTS */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px', marginBottom: '40px' }}>
           <div className="glass-card" style={{ padding: '20px', minHeight: '300px' }}>
             <h3 style={{ color: 'var(--text-primary)', marginBottom: '20px', fontSize: '18px' }}>Weekly Activity</h3>
@@ -126,18 +121,10 @@ const Stats = ({ username, onNavigate }) => {
                 </PieChart>
               </ResponsiveContainer>
             </div>
-            <div style={{ textAlign: 'center', marginTop: '10px', fontSize: '12px', display: 'flex', justifyContent: 'center', gap: '15px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', color: 'var(--text-secondary)' }}>
-                <div style={{ width: 10, height: 10, background: '#00b894', borderRadius: '50%', marginRight: 5 }}></div> Correct
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', color: 'var(--text-secondary)' }}>
-                <div style={{ width: 10, height: 10, background: '#d63031', borderRadius: '50%', marginRight: 5 }}></div> Incorrect
-              </div>
-            </div>
           </div>
         </div>
 
-        {/* ✅ NEW: TECHNICAL PORTFOLIO SECTION */}
+        {/* TECHNICAL PORTFOLIO */}
         <div className="glass-card" style={{ padding: '30px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '25px' }}>
             <FaFolderOpen color="var(--accent-color)" size={24} />
@@ -147,34 +134,27 @@ const Stats = ({ username, onNavigate }) => {
           {missions.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
               <FaCode size={40} style={{ opacity: 0.2, marginBottom: '15px' }} />
-              <p>No practical missions completed yet. Engage Guardians to build your portfolio!</p>
+              <p>No practical missions completed yet. Build your portfolio by defeating Guardians!</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               {missions.map((mission, idx) => (
                 <div key={idx} style={{ padding: '20px', background: 'rgba(255,255,255,0.03)', borderRadius: '15px', border: '1px solid var(--card-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ color: 'var(--accent-color)', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '5px' }}>
-                      {mission.moduleName || 'Software Engineering Mission'}
-                    </div>
-                    <div style={{ color: 'var(--text-primary)', fontWeight: 'bold', fontSize: '16px', marginBottom: '10px' }}>
-                      {mission.lessonTitle}
-                    </div>
-                    <div style={{ color: 'var(--text-secondary)', fontSize: '13px', fontStyle: 'italic', background: 'rgba(0,0,0,0.2)', padding: '10px', borderRadius: '8px' }}>
-                      "{mission.submission}"
-                    </div>
+                    <div style={{ color: 'var(--accent-color)', fontSize: '12px', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: '5px' }}>{mission.moduleName}</div>
+                    <div style={{ color: 'var(--text-primary)', fontWeight: 'bold', fontSize: '16px', marginBottom: '10px' }}>{mission.lessonTitle}</div>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '13px', fontStyle: 'italic', background: 'rgba(0,0,0,0.2)', padding: '10px', borderRadius: '8px' }}>"{mission.submission}"</div>
                   </div>
-                  <button 
-                    onClick={() => mission.submission.includes('http') && window.open(mission.submission, '_blank')}
-                    style={{ marginLeft: '20px', background: 'transparent', border: '1.5px solid var(--card-border)', color: 'var(--text-primary)', padding: '10px', borderRadius: '12px', cursor: 'pointer', display: mission.submission.includes('http') ? 'block' : 'none' }}>
-                    <FaExternalLinkAlt size={14} />
-                  </button>
+                  {mission.submission.includes('http') && (
+                    <button onClick={() => window.open(mission.submission, '_blank')} style={{ marginLeft: '20px', background: 'transparent', border: '1.5px solid var(--card-border)', color: 'var(--text-primary)', padding: '10px', borderRadius: '12px', cursor: 'pointer' }}>
+                      <FaExternalLinkAlt size={14} />
+                    </button>
+                  )}
                 </div>
               ))}
             </div>
           )}
         </div>
-
       </div>
     </div>
   );
