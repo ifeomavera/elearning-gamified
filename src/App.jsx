@@ -162,7 +162,7 @@ function App() {
           </ProtectedRoute>
         } />
 
-        <Route path="/profile" element={<ProtectedRoute user={user} isBanned={isBanned}><Profile onNavigate={(v) => navigate(`/${v}`)} onUpdateProfile={setUser} /></ProtectedRoute>} />
+        <Route path="/profile" element={<ProtectedRoute user={user} isBanned={isBanned}><Profile onNavigate={(v) => navigate(`/${v}`)} onUpdateProfile={(newName, newAvatar) => { setUser(newName); setAvatar(newAvatar); }} showToast={showToast} /></ProtectedRoute>} />
         <Route path="/forum" element={<ProtectedRoute user={user} isBanned={isBanned}><Forum username={user} avatar={avatar} onNavigate={(v) => navigate(`/${v}`)} /></ProtectedRoute>} />
         <Route path="/course-catalog" element={<ProtectedRoute user={user} isBanned={isBanned}><CourseCatalog username={user} onNavigate={(v) => navigate(`/${v}`)} /></ProtectedRoute>} />
         <Route path="/stats" element={<ProtectedRoute user={user} isBanned={isBanned}><Stats username={user} onNavigate={(v) => navigate(`/${v}`)} refreshTrigger={refreshTrigger} /></ProtectedRoute>} />
@@ -170,7 +170,7 @@ function App() {
         
         {/* ✅ THE MISSING ROUTES THAT WERE CAUSING LOGOUTS */}
         <Route path="/credits" element={<ProtectedRoute user={user} isBanned={isBanned}><Credits onNavigate={(v) => navigate(`/${v}`)} /></ProtectedRoute>} />
-        <Route path="/find-friends" element={<ProtectedRoute user={user} isBanned={isBanned}><FindFriends username={user} onNavigate={(v) => navigate(`/${v}`)} /></ProtectedRoute>} />
+        <Route path="/find-friends" element={<ProtectedRoute user={user} isBanned={isBanned}><FindFriends username={user} onNavigate={(v) => navigate(`/${v}`)} showToast={showToast} /></ProtectedRoute>} />
 
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>

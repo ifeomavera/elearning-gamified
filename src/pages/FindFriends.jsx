@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import { FaArrowLeft, FaSearch, FaUserPlus, FaCheck, FaSpinner, FaGraduationCap } from 'react-icons/fa';
 
-const StudentDirectory = ({ currentUsername, onNavigate }) => {
+// ✅ ADDED showToast to the props here
+const StudentDirectory = ({ username, onNavigate, showToast }) => {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -18,9 +19,11 @@ const StudentDirectory = ({ currentUsername, onNavigate }) => {
     setLoading(true);
     try {
       const res = await axios.get(`${apiUrl}/api/users/search/${val}`);
-      setResults(res.data.filter(u => u.username !== currentUsername)); 
+      setResults(res.data.filter(u => u.username !== username)); 
     } catch (err) {
       console.error("Search failed", err);
+      // Optional: Show a toast if the search itself crashes
+      if (showToast) showToast("Search failed to connect.", "error");
     } finally {
       setLoading(false);
     }
@@ -30,11 +33,20 @@ const StudentDirectory = ({ currentUsername, onNavigate }) => {
     setRequesting(targetUsername);
     try {
       await axios.put(`${apiUrl}/api/users/${targetUsername}/request`, { 
-        currentUsername 
+        currentUsername: username 
       });
       setResults(results.map(u => u.username === targetUsername ? { ...u, sent: true } : u));
+      
+      // ✅ Added a clean SUCCESS toast when request goes through
+      if (showToast) showToast(`Connection request sent to ${targetUsername}!`, "success");
+      
     } catch (err) {
-      alert(err.response?.data || "Failed to send request");
+      // ✅ Replaced the ugly alert() with your sleek error toast
+      if (showToast) {
+        showToast(err.response?.data || "Failed to send request", "error");
+      } else {
+        alert(err.response?.data || "Failed to send request"); // Fallback just in case
+      }
     } finally {
       setRequesting(null);
     }
@@ -72,7 +84,6 @@ const StudentDirectory = ({ currentUsername, onNavigate }) => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <div style={{ fontSize: '24px', background: 'var(--card-border)', padding: '8px', borderRadius: '10px' }}>{user.avatar || "👨‍💻"}</div>
                 
-                {/* ✅ UPDATED: Dynamic Email and Major */}
                 <div>
                   <h3 style={{ margin: 0, fontSize: '16px', color: 'var(--text-primary)' }}>{user.username}</h3>
                   <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)' }}>

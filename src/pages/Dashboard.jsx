@@ -99,6 +99,9 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
         .messenger-item:hover { border-color: var(--accent-color); background: rgba(108, 92, 231, 0.1); }
         @media (max-width: 1300px) { .dashboard-grid { grid-template-columns: 1fr 320px; } .achievements-col { display: none; } }
         @media (max-width: 800px) { .dashboard-grid { grid-template-columns: 1fr; } .social-col { order: 3; } }
+        
+        .hidden-scroll::-webkit-scrollbar { display: none; }
+        .hidden-scroll { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
 
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', maxWidth: '1600px', margin: '0 auto 25px auto' }}>
@@ -175,7 +178,9 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
       <div style={{ position: 'fixed', top: 0, right: isMenuOpen ? '0' : '-100%', width: '340px', height: '100%', zIndex: 9999, transition: '0.4s cubic-bezier(0.16, 1, 0.3, 1)', background: 'var(--bg-body)', borderLeft: '1px solid var(--card-border)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '25px', display: 'flex', justifyContent: 'flex-end' }}><button onClick={() => setIsMenuOpen(false)} style={{ background: 'transparent', border: '1px solid var(--card-border)', color: 'var(--text-primary)', width: '45px', height: '45px', borderRadius: '50%', cursor: 'pointer' }}><FaTimes size={20} /></button></div>
         <div style={{ padding: '0 40px 40px 40px', textAlign: 'center', borderBottom: '1px solid var(--card-border)' }}><div style={{ fontSize: '70px', marginBottom: '20px' }}>{avatar}</div><h2 style={{ color: 'var(--text-primary)', margin: 0, fontWeight: '900' }}>{username}</h2></div>
-        <div style={{ padding: '30px 0', display: 'flex', flexDirection: 'column', height: '100%' }}>
+        
+        {/* ✅ SMOOTH SCROLLING PROPERTIES ADDED HERE */}
+        <div className="hidden-scroll" style={{ padding: '30px 0', display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto', scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch' }}>
           <button onClick={() => { onNavigate('profile'); setIsMenuOpen(false); }} className="vici-menu-item"><FaUser opacity={0.6} /> Profile Settings</button>
           
           <button onClick={() => { onNavigate('study-vault'); setIsMenuOpen(false); }} className="vici-menu-item" style={{ color: '#2ecc71' }}>
@@ -185,11 +190,11 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
           <button onClick={() => { onNavigate('course-catalog'); setIsMenuOpen(false); }} className="vici-menu-item"><FaBookOpen opacity={0.6} /> Course Catalog</button>
           <button onClick={() => { onNavigate('forum'); setIsMenuOpen(false); }} className="vici-menu-item"><FaUsers opacity={0.6} /> Community</button>
           
-          {/* ✅ THE NEW CREDITS BUTTON */}
           <button onClick={() => { onNavigate('credits'); setIsMenuOpen(false); }} className="vici-menu-item">⭐ Credits</button>
 
           <button onClick={toggleTheme} className="vici-menu-item">{currentTheme === 'light' ? <FaMoon opacity={0.6} /> : <FaSun opacity={0.6} />} {currentTheme === 'light' ? "Dark Mode" : "Light Mode"}</button>
-          <button onClick={onLogout} className="vici-menu-item" style={{ marginTop: 'auto', borderTop: '1px solid var(--card-border)', color: '#ff4757', padding: '25px 40px' }}><FaSignOutAlt /> Sign Out</button>
+          
+          <button onClick={onLogout} className="vici-menu-item" style={{ marginTop: 'auto', borderTop: '1px solid var(--card-border)', color: '#ff4757', padding: '25px 40px', flexShrink: 0 }}><FaSignOutAlt /> Sign Out</button>
         </div>
       </div>
     </div>
