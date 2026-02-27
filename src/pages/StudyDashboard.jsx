@@ -1,10 +1,9 @@
-// src/pages/StudyDashboard.jsx
 import React, { useEffect, useState } from 'react';
-import api from '../utils/api';
+import api from '../utils/api';                    
 import { motion } from 'framer-motion';
 import html2pdf from 'html2pdf.js'; 
 import Flashcard from '../components/Flashcard';
-import { FaCloudUploadAlt, FaBrain, FaFileAlt, FaChevronLeft, FaDownload } from 'react-icons/fa';
+import { FaCloudUploadAlt, FaBrain, FaFileAlt, FaChevronLeft, FaDownload, FaTrash } from 'react-icons/fa';
 
 const StudyDashboard = ({ userId, onNavigate, showToast }) => {
   const [materials, setMaterials] = useState([]);
@@ -12,6 +11,10 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
   const [aiResult, setAiResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [deletingId, setDeletingId] = useState(null); 
+  
+  // NEW: State to track which material we are confirming to delete
+  const [materialToDelete, setMaterialToDelete] = useState(null);
 
   const fetchMaterials = async () => {
     try {
@@ -30,11 +33,11 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
   const downloadSummaryPDF = () => {
     const element = document.getElementById('note-paper-content');
     const opt = {
-      margin: [15, 15],
-      filename: `${selectedMaterial?.title}_Summary.pdf`,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      margin:       [15, 15],
+      filename:     `${selectedMaterial?.title}_Summary.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
     };
     html2pdf().set(opt).from(element).save();
     showToast("Generating PDF...", "success");
@@ -63,12 +66,11 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
       });
       setUploadProgress(0);
       fetchMaterials();
-      showToast("Material Indexed! ✅", "reward", 50);
-    } catch (err) {
+      showToast("Material Indexed!", "reward", 50);
+    } catch (err) { 
       setUploadProgress(0);
-      const serverMsg = err.response?.data?.message || err.message || "Upload failed";
-      console.error("Upload full error:", err.response?.data || err);
-      showToast(`Upload failed: ${serverMsg}`, "error");
+      const serverMsg = err.response?.data?.message || "Upload failed";
+      showToast(serverMsg, "error");
     }
   };
 
@@ -86,18 +88,38 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
         content = JSON.parse(cleanJson);
       }
       setAiResult({ type, content });
-      showToast("AI Distillation Complete! 🎉", "reward", 20);
-    } catch (err) {
-      const serverMsg = err.response?.data?.message || err.message || "AI failed";
-      console.error("Generate AI full error:", err.response?.data || err);
-      showToast(`AI Error: ${serverMsg}`, "error");
-    }
+      showToast("AI Distillation Complete!", "reward", 20);
+    } catch (err) { 
+  const serverMsg = err.response?.data?.message || "AI is recalibrating. Try again soon.";
+  showToast(serverMsg, "error");
+}
     setLoading(false);
   };
 
+  const handleDelete = async (materialId) => {
+    // REMOVED: window.confirm
+    setDeletingId(materialId);
+    setMaterialToDelete(null); // Close the modal immediately
+
+    try {
+      await api.delete(`/study-vault/${materialId}`);
+      showToast("Material deleted successfully", "success");
+      fetchMaterials();
+      
+      if (selectedMaterial?._id === materialId) {
+        setSelectedMaterial(null);
+        setAiResult(null);
+      }
+    } catch (err) {
+      showToast("Failed to delete material", "error");
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   return (
-    <div style={{ padding: '25px', background: 'var(--bg-body)', minHeight: '100vh', color: 'var(--text-primary)' }}>
-      {/* Your existing styles and JSX — unchanged */}
+    <div style={{ padding: '25px', background: 'var(--bg-body)', minHeight: '100vh', color: 'var(--text-primary)', position: 'relative' }}>
+      {/* 🎨 CSS Styles */}
       <style>{`
         .note-paper {
           background: #fff9db; 
@@ -125,14 +147,23 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
         .material-card {
           padding: 20px; cursor: pointer; transition: all 0.3s ease;
           border: 1px solid var(--card-border);
+          position: relative;
         }
         .material-card:hover {
           border-color: #6c5ce7; transform: translateY(-3px);
           box-shadow: 0 5px 15px rgba(108, 92, 231, 0.2);
         }
+        .delete-btn {
+          background: #d63031 !important;
+          color: white !important;
+          border: none !important;
+        }
+        .delete-btn:hover {
+          background: #b71c1c !important;
+        }
       `}</style>
 
-      {/* Universal Header */}
+      {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '40px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
           <button onClick={() => onNavigate('dashboard')} style={{ background: 'var(--glass-bg)', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', padding: '10px', borderRadius: '12px' }}>
@@ -160,6 +191,7 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '350px 1fr', gap: '40px' }}>
+        {/* Knowledge Base / History */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           <h3 style={{ fontSize: '13px', textTransform: 'uppercase', opacity: 0.5, fontWeight: 900 }}>Knowledge Base</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', maxHeight: '70vh', overflowY: 'auto' }}>
@@ -167,19 +199,33 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
               <div 
                 key={m._id} 
                 className="glass-card material-card" 
-                style={{ border: selectedMaterial?._id === m._id ? '2px solid #6c5ce7' : '1px solid var(--card-border)' }} 
+                style={{ 
+                  border: selectedMaterial?._id === m._id ? '2px solid #6c5ce7' : '1px solid var(--card-border)',
+                  opacity: deletingId === m._id ? 0.6 : 1,
+                  pointerEvents: deletingId === m._id ? 'none' : 'auto'
+                }} 
                 onClick={() => setSelectedMaterial(m)}
               >
                 <h4 style={{ margin: '0 0 15px 0', fontSize: '14px', fontWeight: 800 }}>{m.title}</h4>
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button onClick={(e) => { e.stopPropagation(); generateAI(m._id, 'summary'); }} style={{ flex: 1, background: '#6c5ce7', color: 'white', border: 'none', padding: '8px', borderRadius: '8px', fontSize: '10px', fontWeight: 900, cursor: 'pointer' }}>SUMMARIZE</button>
                   <button onClick={(e) => { e.stopPropagation(); generateAI(m._id, 'flashcards'); }} style={{ flex: 1, background: 'transparent', border: '1.5px solid #6c5ce7', color: '#6c5ce7', padding: '8px', borderRadius: '8px', fontSize: '10px', fontWeight: 900, cursor: 'pointer' }}>FLASHCARDS</button>
+                  <button 
+                    // UPDATED: Now triggers the custom modal instead of direct delete
+                    onClick={(e) => { e.stopPropagation(); setMaterialToDelete(m); }} 
+                    className="delete-btn"
+                    disabled={deletingId === m._id}
+                    style={{ background: '#d63031', color: 'white', border: 'none', padding: '8px', borderRadius: '8px', fontSize: '10px', fontWeight: 900, cursor: 'pointer' }}
+                  >
+                    {deletingId === m._id ? 'Deleting...' : 'DELETE'}
+                  </button>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
+        {/* Display Area */}
         <div className="display-area">
           {loading ? (
             <div style={{ textAlign: 'center', padding: '100px' }}>
@@ -214,6 +260,46 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
           )}
         </div>
       </div>
+
+      {/* NEW: Custom Confirmation Modal */}
+      {materialToDelete && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+          background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(4px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
+        }}>
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.9 }} 
+            animate={{ opacity: 1, scale: 1 }} 
+            className="glass-card" 
+            style={{ 
+              padding: '30px', textAlign: 'center', maxWidth: '400px', 
+              background: 'var(--bg-body)', border: '1px solid var(--card-border)',
+              boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
+            }}
+          >
+            <h3 style={{ margin: '0 0 15px 0', color: '#d63031', fontSize: '20px', fontWeight: 900 }}>Delete Material?</h3>
+            <p style={{ opacity: 0.8, marginBottom: '25px', fontSize: '14px', lineHeight: '1.5' }}>
+              Are you sure you want to permanently delete <strong>{materialToDelete.title}</strong>? This action cannot be undone.
+            </p>
+            <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
+              <button 
+                onClick={() => setMaterialToDelete(null)}
+                style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'transparent', color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 900 }}
+              >
+                CANCEL
+              </button>
+              <button 
+                onClick={() => handleDelete(materialToDelete._id)}
+                className="delete-btn"
+                style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#d63031', color: 'white', cursor: 'pointer', fontWeight: 900 }}
+              >
+                YES, DELETE
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 };
