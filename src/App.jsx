@@ -18,12 +18,38 @@ import ChatBox from './components/ChatBox';
 import Banned from './pages/Banned'; 
 import Toast from './components/Toast'; 
 import axios from 'axios';
+import confetti from 'canvas-confetti';
 
+// --- 🛡️ PROTECTED ROUTE ---
 const ProtectedRoute = ({ user, isBanned, children }) => {
   if (!user) return <Navigate to="/login" replace />;
   if (isBanned) return <Navigate to="/banned" replace />; 
   return children;
 };
+
+// --- ✨ LEVEL UP MODAL COMPONENT ---
+const LevelUpModal = ({ level, onClose }) => (
+  <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(10px)', zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '20px' }}>
+    <div className="glass-card" style={{ maxWidth: '450px', width: '100%', padding: '40px', textAlign: 'center', border: '2px solid var(--accent-color)', animation: 'scaleIn 0.5s cubic-bezier(0.17, 0.67, 0.83, 0.67)' }}>
+      <div style={{ fontSize: '80px', marginBottom: '20px' }}>✨</div>
+      <h1 style={{ color: 'var(--text-primary)', fontSize: '32px', margin: '0 0 10px 0' }}>RANK INCREASED!</h1>
+      <p style={{ color: 'var(--accent-color)', fontWeight: 'bold', fontSize: '20px', marginBottom: '30px' }}>You are now Level {level}</p>
+      
+      <div style={{ background: 'rgba(255,255,255,0.05)', padding: '20px', borderRadius: '15px', marginBottom: '30px', textAlign: 'left' }}>
+        <h4 style={{ margin: '0 0 10px 0', color: 'var(--text-primary)', fontSize: '14px' }}>UNLOCKED REWARDS:</h4>
+        <ul style={{ color: 'var(--text-secondary)', fontSize: '13px', paddingLeft: '20px', margin: 0 }}>
+          <li>New Rank: Advanced Scholar</li>
+          <li>Exclusive Profile Badge: Level {level} Veteran</li>
+          <li>Increased Daily XP Cap (+200)</li>
+        </ul>
+      </div>
+
+      <button onClick={onClose} className="btn-primary" style={{ width: '100%', padding: '15px', borderRadius: '12px', fontWeight: 'bold' }}>
+        CONTINUE ADVENTURE
+      </button>
+    </div>
+  </div>
+);
 
 function App() {
   const navigate = useNavigate();
@@ -37,6 +63,9 @@ function App() {
   const [activeLesson, setActiveLesson] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [toastConfig, setToastConfig] = useState(null);
+  
+  // ✅ NEW: State to track level up visibility
+  const [showLevelUp, setShowLevelUp] = useState(null);
 
   const showToast = (message, type = 'success', xpAmount = null) => {
     setToastConfig({ message, type, xpAmount });
@@ -103,14 +132,35 @@ function App() {
     if (!activeLesson) return;
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'https://elearning-api-dr6r.onrender.com';
-      await axios.put(`${apiUrl}/api/users/${user}/progress`, {
+      
+      // 1. Fetch current data briefly to check old level
+      const userRes = await axios.get(`${apiUrl}/api/users/${encodeURIComponent(user)}`);
+      const oldLevel = userRes.data.level || 1;
+
+      // 2. Push progress to DB
+      const res = await axios.put(`${apiUrl}/api/users/${user}/progress`, {
         xpEarned: earnedXP,
         courseId: activeLesson._id,
         courseTitle: activeLesson.title,
         stats: quizStats
       });
+
+      const newLevel = res.data.level;
       setRefreshTrigger(prev => prev + 1);
-      showToast("Milestone Cleared!", "reward", earnedXP); 
+
+      // 3. CHECK FOR RANK UP
+      if (newLevel > oldLevel) {
+        setShowLevelUp(newLevel); // ✅ Triggers the modal
+        confetti({
+          particleCount: 300,
+          spread: 100,
+          origin: { y: 0.6 },
+          colors: ['#6c5ce7', '#ffd700', '#00b894']
+        });
+      } else {
+        showToast("Guardian Defeated!", "reward", earnedXP);
+      }
+
       navigate('/dashboard');
     } catch (err) { 
       showToast("Cloud sync failed.", "error"); 
@@ -119,6 +169,9 @@ function App() {
 
   return (
     <>
+      {/* --- LEVEL UP MODAL --- */}
+      {showLevelUp && <LevelUpModal level={showLevelUp} onClose={() => setShowLevelUp(null)} />}
+
       {toastConfig && (
         <Toast 
           message={toastConfig.message} 
@@ -168,7 +221,6 @@ function App() {
         <Route path="/stats" element={<ProtectedRoute user={user} isBanned={isBanned}><Stats username={user} onNavigate={(v) => navigate(`/${v}`)} refreshTrigger={refreshTrigger} /></ProtectedRoute>} />
         <Route path="/lesson" element={<ProtectedRoute user={user} isBanned={isBanned}><LessonView lesson={activeLesson} onComplete={handleLessonComplete} onExit={() => navigate('/dashboard')} /></ProtectedRoute>} />
         
-        {/* ✅ THE MISSING ROUTES THAT WERE CAUSING LOGOUTS */}
         <Route path="/credits" element={<ProtectedRoute user={user} isBanned={isBanned}><Credits onNavigate={(v) => navigate(`/${v}`)} /></ProtectedRoute>} />
         <Route path="/find-friends" element={<ProtectedRoute user={user} isBanned={isBanned}><FindFriends username={user} onNavigate={(v) => navigate(`/${v}`)} showToast={showToast} /></ProtectedRoute>} />
 
