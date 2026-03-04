@@ -167,7 +167,6 @@ const AdminDashboard = ({ onLogout, toggleTheme, currentTheme, role, onOpenChat 
   };
 
   // --- RENDERING FUNCTIONS ---
-
   const renderCourses = () => (
     <div className="animate-fade">
       <h2 style={{ color: 'var(--text-primary)', marginBottom: '20px' }}>Curriculum Management</h2>
@@ -303,10 +302,62 @@ const AdminDashboard = ({ onLogout, toggleTheme, currentTheme, role, onOpenChat 
   );
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-body)' }}>
-      <div style={{ width: '260px', background: 'rgba(0,0,0,0.15)', borderRight: '1px solid var(--card-border)', padding: '25px', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ marginBottom: '40px' }}>
-          <h2 style={{ color: 'var(--accent-color)', fontSize: '18px', display: 'flex', alignItems: 'center', gap: '10px', fontWeight: '900' }}>
+    <div className="admin-container">
+      {/* ✅ ADDED CSS FOR MOBILE RESPONSIVENESS */}
+      <style>{`
+        .admin-container {
+          display: flex;
+          min-height: 100vh;
+          background: var(--bg-body);
+        }
+        .admin-sidebar {
+          width: 260px;
+          background: rgba(0,0,0,0.15);
+          border-right: 1px solid var(--card-border);
+          padding: 25px;
+          display: flex;
+          flex-direction: column;
+        }
+        .admin-content {
+          flex: 1;
+          padding: 40px;
+          overflow-y: auto;
+        }
+        .bottom-actions {
+          margin-top: auto;
+          display: flex;
+          flex-direction: column;
+          gap: 10px;
+        }
+        
+        @media (max-width: 768px) {
+          .admin-container { flex-direction: column; }
+          .admin-sidebar {
+            width: 100%;
+            border-right: none;
+            border-bottom: 1px solid var(--card-border);
+            padding: 15px;
+          }
+          .admin-sidebar nav {
+            flex-direction: row !important;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+          }
+          .admin-sidebar nav button { width: auto !important; }
+          .bottom-actions {
+            flex-direction: row;
+            justify-content: center;
+            margin-top: 10px;
+          }
+          .admin-content { padding: 15px; }
+        }
+      `}</style>
+
+      <div className="admin-sidebar">
+        <div style={{ marginBottom: '40px', textAlign: 'center' }}>
+          <h2 style={{ color: 'var(--accent-color)', fontSize: '18px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', fontWeight: '900' }}>
             {isSuperAdmin ? <FaUserShield /> : <FaChalkboardTeacher />} VICI COMMAND
           </h2>
           <p style={{ fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase', fontWeight: 'bold' }}>{dashboardTitle}</p>
@@ -320,7 +371,7 @@ const AdminDashboard = ({ onLogout, toggleTheme, currentTheme, role, onOpenChat 
           )}
         </nav>
 
-        <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <div className="bottom-actions">
           <button onClick={toggleTheme} className="glass-card" style={styles.actionBtn}>
             {currentTheme === 'light' ? <FaMoon /> : <FaSun color="#f1c40f" />} Theme
           </button>
@@ -330,7 +381,7 @@ const AdminDashboard = ({ onLogout, toggleTheme, currentTheme, role, onOpenChat 
         </div>
       </div>
 
-      <div style={{ flex: 1, padding: '40px', overflowY: 'auto' }}>
+      <div className="admin-content">
         {activeTab === 'courses' && renderCourses()}
         {activeTab === 'students' && renderStudents()}
         {activeTab === 'forum' && isSuperAdmin && renderForum()}

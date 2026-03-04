@@ -10,7 +10,7 @@ import {
   FaBrain 
 } from 'react-icons/fa';
 import axios from 'axios';
-import confetti from 'canvas-confetti'; // ✅ IMPORTED CONFETTI
+import confetti from 'canvas-confetti'; 
 
 const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, toggleTheme, currentTheme, onStartLesson, onOpenChat }) => {
   const [xp, setXP] = useState(0); 
@@ -22,16 +22,22 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
   const [userData, setUserData] = useState(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  // --- ✅ EASTER EGG STATE ---
+  // --- ✅ EASTER EGG STATES ---
   const [logoClicks, setLogoClicks] = useState(0);
   const [showLoreSecret, setShowLoreSecret] = useState(false);
   const clickTimeout = useRef(null);
 
-  // --- ✅ EASTER EGG LOGIC ---
+  // ✅ NEW: Konami Code State
+  const [konamiUnlocked, setKonamiUnlocked] = useState(false);
+
+  // ✅ NEW: Midnight Guardian Check (12:00 AM - 2:59 AM)
+  const currentHour = new Date().getHours();
+  const isMidnight = currentHour >= 0 && currentHour < 3;
+
+  // --- ✅ EASTER EGG LOGIC (Logo Clicks) ---
   const handleSecretLogoClick = () => {
     setLogoClicks((prev) => {
       const newCount = prev + 1;
-      
       if (newCount === 7) {
         setShowLoreSecret(true);
         confetti({
@@ -50,6 +56,30 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
       setLogoClicks(0);
     }, 1500);
   };
+
+  // --- ✅ NEW: KONAMI CODE LISTENER ---
+  useEffect(() => {
+    const konamiSequence = ['ArrowUp', 'ArrowUp', 'ArrowDown', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'ArrowLeft', 'ArrowRight', 'b', 'a'];
+    let konamiIndex = 0;
+
+    const handleKeyDown = (e) => {
+      const key = e.key === 'B' ? 'b' : e.key === 'A' ? 'a' : e.key; 
+      
+      if (key === konamiSequence[konamiIndex]) {
+        konamiIndex++;
+        if (konamiIndex === konamiSequence.length) {
+          setKonamiUnlocked(true);
+          confetti({ particleCount: 150, spread: 80, colors: ['#ff0000', '#00ff00', '#0000ff'] }); 
+          konamiIndex = 0;
+        }
+      } else {
+        konamiIndex = 0; 
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const fetchUserData = async (isRefresh = false) => {
     if (!isRefresh && xp === 0) setLoading(true);
@@ -132,13 +162,30 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
         
         .hidden-scroll::-webkit-scrollbar { display: none; }
         .hidden-scroll { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* ✅ Retro Styling for Konami Trigger */
+        .retro-avatar {
+          image-rendering: pixelated;
+          border: 3px dashed #f1c40f !important;
+          box-shadow: 0 0 20px rgba(241, 196, 15, 0.5);
+          background: #000 !important;
+        }
+        .retro-text {
+          font-family: 'Courier New', Courier, monospace !important;
+          color: #f1c40f !important;
+          text-shadow: 2px 2px 0px #ff4757;
+        }
       `}</style>
 
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', maxWidth: '1600px', margin: '0 auto 25px auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <div className="glass-card" onClick={() => onNavigate('profile')} style={{ cursor: 'pointer', width: '55px', height: '55px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px' }}>{avatar}</div>
+          
+          {/* ✅ AVATAR UPDATES ON KONAMI */}
+          <div className={`glass-card ${konamiUnlocked ? 'retro-avatar' : ''}`} onClick={() => onNavigate('profile')} style={{ cursor: 'pointer', width: '55px', height: '55px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px', transition: 'all 0.3s' }}>
+            {konamiUnlocked ? "👾" : avatar}
+          </div>
+
           <div>
-            {/* ✅ ATTACHED SECRET TRIGGER TO USERNAME */}
             <h1 
               onClick={handleSecretLogoClick}
               style={{ 
@@ -147,10 +194,15 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
                 transform: logoClicks > 0 ? `scale(${1 + (logoClicks * 0.05)})` : 'scale(1)',
                 transformOrigin: 'left center'
               }}
+              className={konamiUnlocked ? 'retro-text' : ''}
             >
               {username}
             </h1>
-            <p style={{ margin: 0, fontSize: '12px', color: 'var(--accent-color)', fontWeight: '800' }}>Independent Scholar</p>
+            
+            {/* ✅ MIDNIGHT GUARDIAN LOGIC APPLIED HERE */}
+            <p style={{ margin: 0, fontSize: '12px', color: isMidnight ? '#a29bfe' : 'var(--accent-color)', fontWeight: '800', transition: 'color 0.5s' }}>
+              {konamiUnlocked ? "Legacy Player" : isMidnight ? "Midnight Guardian 🦉" : "Independent Scholar"}
+            </p>
           </div>
         </div>
         <button onClick={() => setIsMenuOpen(true)} className="glass-card" style={{ padding: '12px', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', borderRadius: '12px' }}><FaBars size={22} /></button>
@@ -221,7 +273,7 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
       <div onClick={() => setIsMenuOpen(false)} style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(8px)', zIndex: 9998, opacity: isMenuOpen ? 1 : 0, pointerEvents: isMenuOpen ? 'all' : 'none', transition: '0.4s' }} />
       <div style={{ position: 'fixed', top: 0, right: isMenuOpen ? '0' : '-100%', width: '340px', height: '100%', zIndex: 9999, transition: '0.4s cubic-bezier(0.16, 1, 0.3, 1)', background: 'var(--bg-body)', borderLeft: '1px solid var(--card-border)', display: 'flex', flexDirection: 'column' }}>
         <div style={{ padding: '25px', display: 'flex', justifyContent: 'flex-end' }}><button onClick={() => setIsMenuOpen(false)} style={{ background: 'transparent', border: '1px solid var(--card-border)', color: 'var(--text-primary)', width: '45px', height: '45px', borderRadius: '50%', cursor: 'pointer' }}><FaTimes size={20} /></button></div>
-        <div style={{ padding: '0 40px 40px 40px', textAlign: 'center', borderBottom: '1px solid var(--card-border)' }}><div style={{ fontSize: '70px', marginBottom: '20px' }}>{avatar}</div><h2 style={{ color: 'var(--text-primary)', margin: 0, fontWeight: '900' }}>{username}</h2></div>
+        <div style={{ padding: '0 40px 40px 40px', textAlign: 'center', borderBottom: '1px solid var(--card-border)' }}><div style={{ fontSize: '70px', marginBottom: '20px' }}>{konamiUnlocked ? "👾" : avatar}</div><h2 style={{ color: 'var(--text-primary)', margin: 0, fontWeight: '900' }}>{username}</h2></div>
         
         <div className="hidden-scroll" style={{ padding: '30px 0', display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto', scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch' }}>
           <button onClick={() => { onNavigate('profile'); setIsMenuOpen(false); }} className="vici-menu-item"><FaUser opacity={0.6} /> Profile Settings</button>

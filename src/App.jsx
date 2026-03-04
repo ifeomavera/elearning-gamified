@@ -14,6 +14,8 @@ import LessonView from './pages/LessonView';
 import StudyDashboard from './pages/StudyDashboard'; 
 import Credits from './pages/Credits'; 
 import FindFriends from './pages/FindFriends'; 
+// ✅ IMPORT LORE BOOK
+import LoreBook from './pages/LoreBook'; 
 import ChatBox from './components/ChatBox'; 
 import Banned from './pages/Banned'; 
 import Toast from './components/Toast'; 
@@ -225,6 +227,9 @@ function App() {
         <Route path="/stats" element={<ProtectedRoute user={user} isBanned={isBanned}><Stats username={user} onNavigate={(v) => navigate(`/${v}`)} refreshTrigger={refreshTrigger} /></ProtectedRoute>} />
         <Route path="/lesson" element={<ProtectedRoute user={user} isBanned={isBanned}><LessonView lesson={activeLesson} onComplete={handleLessonComplete} onExit={() => navigate('/dashboard')} /></ProtectedRoute>} />
         
+        {/* ✅ LORE BOOK ROUTE ADDED HERE */}
+        <Route path="/codex" element={<ProtectedRoute user={user} isBanned={isBanned}><LoreBook username={user} onNavigate={(v) => navigate(`/${v}`)} /></ProtectedRoute>} />
+
         <Route path="/credits" element={<ProtectedRoute user={user} isBanned={isBanned}><Credits onNavigate={(v) => navigate(`/${v}`)} /></ProtectedRoute>} />
         <Route path="/find-friends" element={<ProtectedRoute user={user} isBanned={isBanned}><FindFriends username={user} onNavigate={(v) => navigate(`/${v}`)} showToast={showToast} /></ProtectedRoute>} />
 
