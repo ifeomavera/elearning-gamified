@@ -64,12 +64,20 @@ function App() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [toastConfig, setToastConfig] = useState(null);
   
-  // ✅ NEW: State to track level up visibility
   const [showLevelUp, setShowLevelUp] = useState(null);
 
   const showToast = (message, type = 'success', xpAmount = null) => {
     setToastConfig({ message, type, xpAmount });
   };
+
+  // --- 🕵️‍♂️ EASTER EGG: CONSOLE LORE WINK ---
+  useEffect(() => {
+    console.log(
+      "%c🔱 TRIDENTQUEST SECRETS\n\n%cGreetings, Explorer. You seek the code beneath the reality. The Guardians obscure the truth, but the logic is pure. \n\nUse this knowledge wisely.", 
+      "color: #2ecc71; font-size: 20px; font-weight: bold;", 
+      "color: #a29bfe; font-size: 14px; font-style: italic;"
+    );
+  }, []);
 
   useEffect(() => {
     if (!user) return;
@@ -133,11 +141,9 @@ function App() {
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'https://elearning-api-dr6r.onrender.com';
       
-      // 1. Fetch current data briefly to check old level
       const userRes = await axios.get(`${apiUrl}/api/users/${encodeURIComponent(user)}`);
       const oldLevel = userRes.data.level || 1;
 
-      // 2. Push progress to DB
       const res = await axios.put(`${apiUrl}/api/users/${user}/progress`, {
         xpEarned: earnedXP,
         courseId: activeLesson._id,
@@ -148,9 +154,8 @@ function App() {
       const newLevel = res.data.level;
       setRefreshTrigger(prev => prev + 1);
 
-      // 3. CHECK FOR RANK UP
       if (newLevel > oldLevel) {
-        setShowLevelUp(newLevel); // ✅ Triggers the modal
+        setShowLevelUp(newLevel); 
         confetti({
           particleCount: 300,
           spread: 100,
@@ -169,7 +174,6 @@ function App() {
 
   return (
     <>
-      {/* --- LEVEL UP MODAL --- */}
       {showLevelUp && <LevelUpModal level={showLevelUp} onClose={() => setShowLevelUp(null)} />}
 
       {toastConfig && (

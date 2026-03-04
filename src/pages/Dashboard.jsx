@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import XPBar from '../components/XPBar';
 import BadgeCard from '../components/BadgeCard';
 import CourseCard from '../components/CourseCard';
@@ -10,6 +10,7 @@ import {
   FaBrain 
 } from 'react-icons/fa';
 import axios from 'axios';
+import confetti from 'canvas-confetti'; // ✅ IMPORTED CONFETTI
 
 const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, toggleTheme, currentTheme, onStartLesson, onOpenChat }) => {
   const [xp, setXP] = useState(0); 
@@ -20,6 +21,35 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
   const [stats, setStats] = useState({ streak: 0, accuracy: 0 });
   const [userData, setUserData] = useState(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  // --- ✅ EASTER EGG STATE ---
+  const [logoClicks, setLogoClicks] = useState(0);
+  const [showLoreSecret, setShowLoreSecret] = useState(false);
+  const clickTimeout = useRef(null);
+
+  // --- ✅ EASTER EGG LOGIC ---
+  const handleSecretLogoClick = () => {
+    setLogoClicks((prev) => {
+      const newCount = prev + 1;
+      
+      if (newCount === 7) {
+        setShowLoreSecret(true);
+        confetti({
+          particleCount: 200,
+          spread: 120,
+          origin: { y: 0.4 },
+          colors: ['#000000', '#2ecc71', '#ffffff'] 
+        });
+        return 0; 
+      }
+      return newCount;
+    });
+
+    if (clickTimeout.current) clearTimeout(clickTimeout.current);
+    clickTimeout.current = setTimeout(() => {
+      setLogoClicks(0);
+    }, 1500);
+  };
 
   const fetchUserData = async (isRefresh = false) => {
     if (!isRefresh && xp === 0) setLoading(true);
@@ -107,7 +137,21 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', maxWidth: '1600px', margin: '0 auto 25px auto' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
           <div className="glass-card" onClick={() => onNavigate('profile')} style={{ cursor: 'pointer', width: '55px', height: '55px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px' }}>{avatar}</div>
-          <div><h1 style={{ margin: 0, fontSize: '20px', color: 'var(--text-primary)', fontWeight: '900' }}>{username}</h1><p style={{ margin: 0, fontSize: '12px', color: 'var(--accent-color)', fontWeight: '800' }}>Independent Scholar</p></div>
+          <div>
+            {/* ✅ ATTACHED SECRET TRIGGER TO USERNAME */}
+            <h1 
+              onClick={handleSecretLogoClick}
+              style={{ 
+                margin: 0, fontSize: '20px', color: 'var(--text-primary)', fontWeight: '900',
+                cursor: 'pointer', userSelect: 'none', transition: 'transform 0.1s', display: 'inline-block',
+                transform: logoClicks > 0 ? `scale(${1 + (logoClicks * 0.05)})` : 'scale(1)',
+                transformOrigin: 'left center'
+              }}
+            >
+              {username}
+            </h1>
+            <p style={{ margin: 0, fontSize: '12px', color: 'var(--accent-color)', fontWeight: '800' }}>Independent Scholar</p>
+          </div>
         </div>
         <button onClick={() => setIsMenuOpen(true)} className="glass-card" style={{ padding: '12px', border: 'none', color: 'var(--text-primary)', cursor: 'pointer', borderRadius: '12px' }}><FaBars size={22} /></button>
       </header>
@@ -179,7 +223,6 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
         <div style={{ padding: '25px', display: 'flex', justifyContent: 'flex-end' }}><button onClick={() => setIsMenuOpen(false)} style={{ background: 'transparent', border: '1px solid var(--card-border)', color: 'var(--text-primary)', width: '45px', height: '45px', borderRadius: '50%', cursor: 'pointer' }}><FaTimes size={20} /></button></div>
         <div style={{ padding: '0 40px 40px 40px', textAlign: 'center', borderBottom: '1px solid var(--card-border)' }}><div style={{ fontSize: '70px', marginBottom: '20px' }}>{avatar}</div><h2 style={{ color: 'var(--text-primary)', margin: 0, fontWeight: '900' }}>{username}</h2></div>
         
-        {/* ✅ SMOOTH SCROLLING PROPERTIES ADDED HERE */}
         <div className="hidden-scroll" style={{ padding: '30px 0', display: 'flex', flexDirection: 'column', height: '100%', overflowY: 'auto', scrollBehavior: 'smooth', WebkitOverflowScrolling: 'touch' }}>
           <button onClick={() => { onNavigate('profile'); setIsMenuOpen(false); }} className="vici-menu-item"><FaUser opacity={0.6} /> Profile Settings</button>
           
@@ -197,6 +240,48 @@ const Dashboard = ({ username, avatar, onNavigate, refreshTrigger, onLogout, tog
           <button onClick={onLogout} className="vici-menu-item" style={{ marginTop: 'auto', borderTop: '1px solid var(--card-border)', color: '#ff4757', padding: '25px 40px', flexShrink: 0 }}><FaSignOutAlt /> Sign Out</button>
         </div>
       </div>
+
+      {/* --- ✅ EASTER EGG: LORE FRAGMENT MODAL --- */}
+      {showLoreSecret && (
+        <div style={{ 
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.9)', 
+          backdropFilter: 'blur(15px)', zIndex: 99999, display: 'flex', 
+          alignItems: 'center', justifyContent: 'center', padding: '20px',
+          animation: 'fadeIn 0.5s ease'
+        }}>
+          <div className="glass-card" style={{ 
+            maxWidth: '500px', width: '100%', padding: '40px', 
+            textAlign: 'center', border: '2px solid #2ecc71', 
+            background: 'rgba(0, 200, 100, 0.05)',
+            boxShadow: '0 0 40px rgba(46, 204, 113, 0.2)'
+          }}>
+            <FaBookOpen size={60} color="#2ecc71" style={{ marginBottom: '20px' }} />
+            
+            <h2 style={{ color: '#2ecc71', textTransform: 'uppercase', letterSpacing: '4px', fontSize: '14px', marginBottom: '10px' }}>
+              Secret Discovered
+            </h2>
+            <h1 style={{ color: '#fff', fontSize: '28px', margin: '0 0 20px 0' }}>
+              Fragment 01: The Void
+            </h1>
+            
+            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '16px', lineHeight: '1.8', fontStyle: 'italic', marginBottom: '30px' }}>
+              "Before the Archives were built, there was only noise. The Guardians were not born to restrict knowledge, but to protect it from those who would use it without wisdom. You have found the first thread. Keep pulling."
+            </p>
+
+            <button 
+              onClick={() => setShowLoreSecret(false)}
+              style={{ 
+                background: 'transparent', border: '1px solid #2ecc71', color: '#2ecc71', 
+                padding: '12px 30px', borderRadius: '12px', fontWeight: 'bold', 
+                cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px', margin: '0 auto' 
+              }}
+            >
+               Close Archive <FaTimes />
+            </button>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };
