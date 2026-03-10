@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { FaCheckCircle, FaTimesCircle, FaBrain, FaArrowRight, FaLightbulb, FaCheck } from 'react-icons/fa';
+import { FaCheckCircle, FaTimesCircle, FaBrain, FaArrowRight, FaLightbulb, FaCheck, FaClock } from 'react-icons/fa';
 
-// ✅ Added onReady to pass total questions back up
-const AdaptiveQuiz = ({ lessonId, onComplete, onWrongAnswer, onCorrectAnswer, onReady }) => {
+const AdaptiveQuiz = ({ lessonId, onComplete, onWrongAnswer, onCorrectAnswer, onReady, onTimeUp }) => {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [askedTexts, setAskedTexts] = useState([]); 
@@ -18,19 +17,37 @@ const AdaptiveQuiz = ({ lessonId, onComplete, onWrongAnswer, onCorrectAnswer, on
   const [showExplanation, setShowExplanation] = useState(false);
   const [score, setScore] = useState(0);
 
+  const [topicTracker, setTopicTracker] = useState({});
+  
+  // ✅ NEW: Timer State
+  const [timeLeft, setTimeLeft] = useState(null);
+
   useEffect(() => {
     const fetchQuiz = async () => {
       try {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
         const res = await axios.get(`${apiUrl}/api/quizzes/${lessonId}`);
-        const fetchedQuestions = res.data.questions || []; // ✅ Grab questions
+        const fetchedQuestions = res.data.questions || []; 
         setQuestions(fetchedQuestions);
         setLoading(false);
         
-        // ✅ Tell LessonView exactly how many questions exist
         if (onReady && fetchedQuestions.length > 0) {
           onReady(fetchedQuestions.length);
         }
+
+        // ✅ SET TIMER: Instructor limit OR auto-calculate (45s per question)
+        const initialTime = res.data.timeLimit || (fetchedQuestions.length * 45);
+        setTimeLeft(initialTime);
+
+        const initialTracker = {};
+        fetchedQuestions.forEach(q => {
+          const tag = q.topicTag || 'General';
+          if (!initialTracker[tag]) {
+            initialTracker[tag] = { correct: 0, total: 0 };
+          }
+        });
+        setTopicTracker(initialTracker);
+
       } catch (err) {
         console.error("Failed to load adaptive quiz", err);
         setLoading(false);
@@ -38,6 +55,25 @@ const AdaptiveQuiz = ({ lessonId, onComplete, onWrongAnswer, onCorrectAnswer, on
     };
     fetchQuiz();
   }, [lessonId]);
+
+  // ✅ NEW: Timer Countdown Hook
+  useEffect(() => {
+    // Stop ticking if no time is set, if time ran out, or if they are reading the explanation
+    if (timeLeft === null || timeLeft <= 0 || showExplanation) return;
+    
+    const timerId = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev <= 1) {
+          clearInterval(timerId);
+          if (onTimeUp) onTimeUp(); // Tell parent component time is up!
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timerId);
+  }, [timeLeft, showExplanation, onTimeUp]);
 
   useEffect(() => {
     if (questions.length > 0 && !currentQuestion) pickNextQuestion();
@@ -48,7 +84,7 @@ const AdaptiveQuiz = ({ lessonId, onComplete, onWrongAnswer, onCorrectAnswer, on
     if (available.length === 0) available = questions.filter(q => !askedTexts.includes(q.text));
 
     if (available.length === 0) {
-      onComplete({ score, total: askedTexts.length });
+      onComplete({ score, total: askedTexts.length, topicTracker });
       return;
     }
 
@@ -102,10 +138,17 @@ const AdaptiveQuiz = ({ lessonId, onComplete, onWrongAnswer, onCorrectAnswer, on
 
     setShowExplanation(true);
     
+    const currentTag = currentQuestion.topicTag || 'General';
+    setTopicTracker(prev => ({
+      ...prev,
+      [currentTag]: {
+        correct: prev[currentTag].correct + (correct ? 1 : 0),
+        total: prev[currentTag].total + 1
+      }
+    }));
+    
     if (correct) {
-      // ✅ SUCCESS: Damage the Guardian
       if (onCorrectAnswer) onCorrectAnswer();
-
       setConsecutiveCorrect(prev => prev + 1);
       setScore(score + (currentDifficulty * 10)); 
       setIsWrong(false);
@@ -114,9 +157,7 @@ const AdaptiveQuiz = ({ lessonId, onComplete, onWrongAnswer, onCorrectAnswer, on
         setConsecutiveCorrect(0); 
       }
     } else {
-      // ✅ FAILURE: Damage the Player
       if (onWrongAnswer) onWrongAnswer();
-
       setIsWrong(true);
       setConsecutiveCorrect(0); 
       if (currentDifficulty > 1) setCurrentDifficulty(currentDifficulty - 1); 
@@ -127,6 +168,14 @@ const AdaptiveQuiz = ({ lessonId, onComplete, onWrongAnswer, onCorrectAnswer, on
     if (currentQuestion.type === 'fill') return currentQuestion.correctAnswerText || currentQuestion.answer;
     if (currentQuestion.type === 'match') return currentQuestion.options.map(o => `${o.matchLeft} → ${o.matchRight}`).join(' | ');
     return currentQuestion.options.filter(o => o.isCorrect === true || String(o.isCorrect) === 'true').map(o => o.text).join(', ');
+  };
+
+  // Format the time as MM:SS
+  const formatTime = (seconds) => {
+    if (seconds === null) return "00:00";
+    const m = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const s = (seconds % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
   };
 
   if (loading) return <div className="glass-card p-5 text-center">🧠 AI is compiling your adaptive exam...</div>;
@@ -142,15 +191,26 @@ const AdaptiveQuiz = ({ lessonId, onComplete, onWrongAnswer, onCorrectAnswer, on
       <style>{`
         .quiz-option-card:hover { transform: translateY(-2px); border-color: #6c5ce7 !important; background: rgba(108, 92, 231, 0.05) !important; }
         .quiz-option-card.selected { border-color: #6c5ce7 !important; background: rgba(108, 92, 231, 0.12) !important; box-shadow: 0 10px 20px rgba(108, 92, 231, 0.1); }
+        .timer-warning { animation: pulseWarning 1s infinite; color: #ff4757 !important; border-color: #ff4757 !important; }
+        @keyframes pulseWarning { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.7; transform: scale(1.05); } 100% { opacity: 1; transform: scale(1); } }
       `}</style>
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 'bold', fontSize: '14px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px' }}>
           <FaBrain color="#6c5ce7" /> Mastery Level {currentDifficulty}
         </span>
-        <span style={{ background: '#6c5ce7', color: '#fff', padding: '6px 16px', borderRadius: '20px', fontWeight: '900', fontSize: '13px', boxShadow: '0 4px 10px rgba(108, 92, 231, 0.3)' }}>
-          {score} XP
-        </span>
+        
+        {/* ✅ THE NEW TIMER UI */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          {timeLeft !== null && (
+            <span className={timeLeft <= 30 ? 'timer-warning' : ''} style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--card-border)', color: 'var(--text-primary)', padding: '6px 12px', borderRadius: '15px', fontWeight: 'bold', fontSize: '14px', transition: 'all 0.3s' }}>
+              <FaClock /> {formatTime(timeLeft)}
+            </span>
+          )}
+          <span style={{ background: '#6c5ce7', color: '#fff', padding: '6px 16px', borderRadius: '20px', fontWeight: '900', fontSize: '13px', boxShadow: '0 4px 10px rgba(108, 92, 231, 0.3)' }}>
+            {score} XP
+          </span>
+        </div>
       </div>
 
       <h3 style={{ color: 'var(--text-primary)', marginBottom: '25px', lineHeight: '1.6', fontSize: '20px', fontWeight: '700' }}>{currentQuestion.text}</h3>
