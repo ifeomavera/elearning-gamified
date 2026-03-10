@@ -95,10 +95,16 @@ function App() {
     const updateActivity = () => localStorage.setItem('lastActionTime', Date.now());
     window.addEventListener('mousemove', updateActivity);
     window.addEventListener('keydown', updateActivity);
+    window.addEventListener('touchstart', updateActivity); // ✅ Added for mobile
+    window.addEventListener('scroll', updateActivity); // ✅ Added for mobile
+    window.addEventListener('click', updateActivity); // ✅ Added for mobile
     const interval = setInterval(checkInactivity, 60000); 
     return () => {
       window.removeEventListener('mousemove', updateActivity);
       window.removeEventListener('keydown', updateActivity);
+      window.removeEventListener('touchstart', updateActivity); // ✅ Removed on cleanup
+      window.removeEventListener('scroll', updateActivity); // ✅ Removed on cleanup
+      window.removeEventListener('click', updateActivity); // ✅ Removed on cleanup
       clearInterval(interval);
     };
   }, [user]);
@@ -225,7 +231,9 @@ function App() {
         <Route path="/forum" element={<ProtectedRoute user={user} isBanned={isBanned}><Forum username={user} avatar={avatar} onNavigate={(v) => navigate(`/${v}`)} /></ProtectedRoute>} />
         <Route path="/course-catalog" element={<ProtectedRoute user={user} isBanned={isBanned}><CourseCatalog username={user} onNavigate={(v) => navigate(`/${v}`)} /></ProtectedRoute>} />
         <Route path="/stats" element={<ProtectedRoute user={user} isBanned={isBanned}><Stats username={user} onNavigate={(v) => navigate(`/${v}`)} refreshTrigger={refreshTrigger} /></ProtectedRoute>} />
-        <Route path="/lesson" element={<ProtectedRoute user={user} isBanned={isBanned}><LessonView lesson={activeLesson} onComplete={handleLessonComplete} onExit={() => navigate('/dashboard')} /></ProtectedRoute>} />
+        
+        {/* ✅ Passed username to LessonView for secret API call */}
+        <Route path="/lesson" element={<ProtectedRoute user={user} isBanned={isBanned}><LessonView lesson={activeLesson} username={user} onComplete={handleLessonComplete} onExit={() => navigate('/dashboard')} /></ProtectedRoute>} />
         
         {/* ✅ LORE BOOK ROUTE ADDED HERE */}
         <Route path="/codex" element={<ProtectedRoute user={user} isBanned={isBanned}><LoreBook username={user} onNavigate={(v) => navigate(`/${v}`)} /></ProtectedRoute>} />

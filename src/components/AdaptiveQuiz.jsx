@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { FaCheckCircle, FaTimesCircle, FaBrain, FaArrowRight, FaLightbulb, FaCheck } from 'react-icons/fa';
 
-// ✅ Added onWrongAnswer and onCorrectAnswer to the props to trigger combat effects
-const AdaptiveQuiz = ({ lessonId, onComplete, onWrongAnswer, onCorrectAnswer }) => {
+// ✅ Added onReady to pass total questions back up
+const AdaptiveQuiz = ({ lessonId, onComplete, onWrongAnswer, onCorrectAnswer, onReady }) => {
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [askedTexts, setAskedTexts] = useState([]); 
@@ -23,8 +23,14 @@ const AdaptiveQuiz = ({ lessonId, onComplete, onWrongAnswer, onCorrectAnswer }) 
       try {
         const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
         const res = await axios.get(`${apiUrl}/api/quizzes/${lessonId}`);
-        setQuestions(res.data.questions || []);
+        const fetchedQuestions = res.data.questions || []; // ✅ Grab questions
+        setQuestions(fetchedQuestions);
         setLoading(false);
+        
+        // ✅ Tell LessonView exactly how many questions exist
+        if (onReady && fetchedQuestions.length > 0) {
+          onReady(fetchedQuestions.length);
+        }
       } catch (err) {
         console.error("Failed to load adaptive quiz", err);
         setLoading(false);
