@@ -3,7 +3,8 @@ import api from '../utils/api';
 import { motion } from 'framer-motion';
 import html2pdf from 'html2pdf.js'; 
 import Flashcard from '../components/Flashcard';
-import { FaCloudUploadAlt, FaBrain, FaFileAlt, FaChevronLeft, FaDownload, FaTrash } from 'react-icons/fa';
+import AdaptiveQuiz from '../components/AdaptiveQuiz'; 
+import { FaCloudUploadAlt, FaBrain, FaFileAlt, FaChevronLeft, FaDownload, FaTrash, FaCogs } from 'react-icons/fa';
 
 const StudyDashboard = ({ userId, onNavigate, showToast }) => {
   const [materials, setMaterials] = useState([]);
@@ -12,16 +13,21 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
   const [loading, setLoading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [deletingId, setDeletingId] = useState(null); 
-  
-  // NEW: State to track which material we are confirming to delete
   const [materialToDelete, setMaterialToDelete] = useState(null);
+
+  // ✅ NEW: Student Quiz Configuration State
+  const [quizConfig, setQuizConfig] = useState({
+    show: false,
+    materialId: null,
+    numQuestions: 10,
+    timeLimitMinutes: 10 // defaults to 10 mins
+  });
 
   const fetchMaterials = async () => {
     try {
       const res = await api.get(`/study-vault/user/${userId}`);
       setMaterials(res.data);
     } catch (err) {
-      console.error("Library fetch failed:", err);
       showToast("Could not load your vault", "error");
     }
   };
@@ -47,8 +53,9 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    if (file.size > 10 * 1024 * 1024) {
-      showToast("File is too large. Max limit is 10MB.", "error");
+    // ✅ UPDATED TO 50MB
+    if (file.size > 50 * 1024 * 1024) {
+      showToast("File is too large. Max limit is 50MB.", "error");
       return;
     }
 
@@ -74,12 +81,21 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
     }
   };
 
-  const generateAI = async (materialId, type) => {
+  // ✅ UPDATED: Accepts custom configuration parameters
+  const generateAI = async (materialId, type, customConfig = {}) => {
     setLoading(true);
     setAiResult(null); 
+    
+    // Convert minutes to seconds for the backend timer
+    const timeLimitSeconds = customConfig.timeLimitMinutes ? customConfig.timeLimitMinutes * 60 : 0;
+
     try {
       const res = await api.post('/study-vault/generate-study-material', { 
-        materialId, userId, type 
+        materialId, 
+        userId, 
+        type,
+        numQuestions: customConfig.numQuestions,
+        timeLimit: timeLimitSeconds
       });
       
       let content = res.data.data;
@@ -87,19 +103,21 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
         const cleanJson = content.replace(/```json|```/g, "").trim();
         content = JSON.parse(cleanJson);
       }
+      
       setAiResult({ type, content });
-      showToast("AI Distillation Complete!", "reward", 20);
+      
+      const successMsg = type === 'quiz' ? "Practice Assessment Ready!" : "AI Distillation Complete!";
+      showToast(successMsg, "reward", 20);
     } catch (err) { 
-  const serverMsg = err.response?.data?.message || "AI is recalibrating. Try again soon.";
-  showToast(serverMsg, "error");
-}
+      const serverMsg = err.response?.data?.message || "AI is recalibrating. Try again soon.";
+      showToast(serverMsg, "error");
+    }
     setLoading(false);
   };
 
   const handleDelete = async (materialId) => {
-    // REMOVED: window.confirm
     setDeletingId(materialId);
-    setMaterialToDelete(null); // Close the modal immediately
+    setMaterialToDelete(null); 
 
     try {
       await api.delete(`/study-vault/${materialId}`);
@@ -117,9 +135,17 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
     }
   };
 
+  // Triggered when user confirms their quiz settings
+  const handleLaunchQuiz = () => {
+    generateAI(quizConfig.materialId, 'quiz', {
+      numQuestions: parseInt(quizConfig.numQuestions),
+      timeLimitMinutes: parseInt(quizConfig.timeLimitMinutes)
+    });
+    setQuizConfig({ ...quizConfig, show: false }); // Close modal
+  };
+
   return (
     <div style={{ padding: '25px', background: 'var(--bg-body)', minHeight: '100vh', color: 'var(--text-primary)', position: 'relative' }}>
-      {/* 🎨 CSS Styles */}
       <style>{`
         .note-paper {
           background: #fff9db; 
@@ -153,14 +179,10 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
           border-color: #6c5ce7; transform: translateY(-3px);
           box-shadow: 0 5px 15px rgba(108, 92, 231, 0.2);
         }
-        .delete-btn {
-          background: #d63031 !important;
-          color: white !important;
-          border: none !important;
-        }
-        .delete-btn:hover {
-          background: #b71c1c !important;
-        }
+        .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .delete-btn { background: #d63031 !important; color: white !important; border: none !important; }
+        .delete-btn:hover { background: #b71c1c !important; }
+        .config-input { width: 100%; padding: 12px; background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); color: var(--text-primary); border-radius: 8px; outline: none; margin-bottom: 15px; }
       `}</style>
 
       {/* Header */}
@@ -179,7 +201,7 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
         
         <div style={{ width: '300px' }}>
           <label className="glass-card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', padding: '15px 20px', cursor: 'pointer', fontSize: '12px', fontWeight: 900, border: '2px solid #2ecc71', color: '#2ecc71' }}>
-            <FaCloudUploadAlt size={22}/> IMPORT COURSE NOTES
+            <FaCloudUploadAlt size={22}/> IMPORT COURSE NOTES (Max 50MB)
             <input type="file" hidden onChange={handleUpload} />
           </label>
           {uploadProgress > 0 && (
@@ -207,17 +229,16 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
                 onClick={() => setSelectedMaterial(m)}
               >
                 <h4 style={{ margin: '0 0 15px 0', fontSize: '14px', fontWeight: 800 }}>{m.title}</h4>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button onClick={(e) => { e.stopPropagation(); generateAI(m._id, 'summary'); }} style={{ flex: 1, background: '#6c5ce7', color: 'white', border: 'none', padding: '8px', borderRadius: '8px', fontSize: '10px', fontWeight: 900, cursor: 'pointer' }}>SUMMARIZE</button>
-                  <button onClick={(e) => { e.stopPropagation(); generateAI(m._id, 'flashcards'); }} style={{ flex: 1, background: 'transparent', border: '1.5px solid #6c5ce7', color: '#6c5ce7', padding: '8px', borderRadius: '8px', fontSize: '10px', fontWeight: 900, cursor: 'pointer' }}>FLASHCARDS</button>
-                  <button 
-                    // UPDATED: Now triggers the custom modal instead of direct delete
-                    onClick={(e) => { e.stopPropagation(); setMaterialToDelete(m); }} 
-                    className="delete-btn"
-                    disabled={deletingId === m._id}
-                    style={{ background: '#d63031', color: 'white', border: 'none', padding: '8px', borderRadius: '8px', fontSize: '10px', fontWeight: 900, cursor: 'pointer' }}
-                  >
-                    {deletingId === m._id ? 'Deleting...' : 'DELETE'}
+                
+                <div className="action-grid">
+                  <button onClick={(e) => { e.stopPropagation(); generateAI(m._id, 'summary'); }} style={{ background: '#6c5ce7', color: 'white', border: 'none', padding: '8px', borderRadius: '8px', fontSize: '10px', fontWeight: 900, cursor: 'pointer' }}>SUMMARIZE</button>
+                  <button onClick={(e) => { e.stopPropagation(); generateAI(m._id, 'flashcards'); }} style={{ background: 'transparent', border: '1.5px solid #6c5ce7', color: '#6c5ce7', padding: '8px', borderRadius: '8px', fontSize: '10px', fontWeight: 900, cursor: 'pointer' }}>FLASHCARDS</button>
+                  
+                  {/* ✅ UPDATED: Opens the Quiz Config Modal instead of auto-generating */}
+                  <button onClick={(e) => { e.stopPropagation(); setQuizConfig({ show: true, materialId: m._id, numQuestions: 10, timeLimitMinutes: 10 }); }} style={{ background: 'transparent', border: '1.5px solid #2ecc71', color: '#2ecc71', padding: '8px', borderRadius: '8px', fontSize: '10px', fontWeight: 900, cursor: 'pointer' }}>PRACTICE QUIZ</button>
+                  
+                  <button onClick={(e) => { e.stopPropagation(); setMaterialToDelete(m); }} className="delete-btn" disabled={deletingId === m._id} style={{ padding: '8px', borderRadius: '8px', fontSize: '10px', fontWeight: 900, cursor: 'pointer' }}>
+                    {deletingId === m._id ? 'DELETING...' : 'DELETE'}
                   </button>
                 </div>
               </div>
@@ -233,6 +254,7 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
                 <FaBrain size={50} color="#6c5ce7" />
               </motion.div>
               <h2 style={{ fontWeight: 900, marginTop: '20px' }}>Distilling your concepts...</h2>
+              <p style={{ color: 'var(--text-secondary)' }}>Analyzing large files may take a moment.</p>
             </div>
           ) : aiResult ? (
             aiResult.type === 'summary' ? (
@@ -247,11 +269,30 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
                   ))}
                 </motion.div>
               </div>
-            ) : (
+            ) : aiResult.type === 'flashcards' ? (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '25px' }}>
                 {aiResult.content.map((card, i) => <Flashcard key={i} {...card} />)}
               </div>
-            )
+            ) : aiResult.type === 'quiz' ? (
+              <div style={{ width: '100%', maxWidth: '700px', margin: '0 auto', animation: 'fadeIn 0.5s ease' }}>
+                <h2 style={{ color: 'var(--text-primary)', marginBottom: '20px', textAlign: 'center', fontWeight: '900' }}>
+                  Vault Assessment: {selectedMaterial?.title}
+                </h2>
+                <AdaptiveQuiz 
+                  lessonId={aiResult.content}
+                  onComplete={(res) => {
+                    showToast(`Practice complete! Earned ${res.score} XP.`, "reward", res.score);
+                    setAiResult(null); 
+                  }}
+                  onWrongAnswer={() => {}}
+                  onCorrectAnswer={() => {}}
+                  onTimeUp={() => {
+                    showToast("Time expired! Practice terminated.", "error");
+                    setAiResult(null);
+                  }}
+                />
+              </div>
+            ) : null
           ) : (
             <div style={{ textAlign: 'center', opacity: 0.3, marginTop: '150px' }}>
               <FaFileAlt size={80} />
@@ -261,7 +302,58 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
         </div>
       </div>
 
-      {/* NEW: Custom Confirmation Modal */}
+      {/* ✅ NEW: QUIZ CONFIGURATION MODAL */}
+      {quizConfig.show && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+          background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
+        }}>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+            className="glass-card" style={{ padding: '30px', width: '400px', background: 'var(--bg-body)' }}
+          >
+            <h3 style={{ color: '#2ecc71', display: 'flex', alignItems: 'center', gap: '10px', marginTop: 0 }}>
+              <FaCogs /> Configure Practice Quiz
+            </h3>
+            
+            <label style={{ display: 'block', color: 'var(--text-secondary)', marginBottom: '5px', fontSize: '14px' }}>Number of Questions (Max 50)</label>
+            <input 
+              type="number" 
+              className="config-input" 
+              min="1" max="50"
+              value={quizConfig.numQuestions} 
+              onChange={e => setQuizConfig({...quizConfig, numQuestions: e.target.value})} 
+            />
+
+            <label style={{ display: 'block', color: 'var(--text-secondary)', marginBottom: '5px', fontSize: '14px' }}>Time Limit (Minutes)</label>
+            <input 
+              type="number" 
+              className="config-input" 
+              min="1"
+              value={quizConfig.timeLimitMinutes} 
+              onChange={e => setQuizConfig({...quizConfig, timeLimitMinutes: e.target.value})} 
+            />
+
+            <div style={{ display: 'flex', gap: '15px', marginTop: '20px' }}>
+              <button 
+                onClick={() => setQuizConfig({ ...quizConfig, show: false })}
+                style={{ flex: 1, padding: '12px', background: 'transparent', border: '1px solid var(--card-border)', color: 'var(--text-primary)', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+              >
+                CANCEL
+              </button>
+              <button 
+                onClick={handleLaunchQuiz}
+                style={{ flex: 1, padding: '12px', background: '#2ecc71', border: 'none', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+              >
+                GENERATE
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
       {materialToDelete && (
         <div style={{
           position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
@@ -269,33 +361,16 @@ const StudyDashboard = ({ userId, onNavigate, showToast }) => {
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999
         }}>
           <motion.div 
-            initial={{ opacity: 0, scale: 0.9 }} 
-            animate={{ opacity: 1, scale: 1 }} 
-            className="glass-card" 
-            style={{ 
-              padding: '30px', textAlign: 'center', maxWidth: '400px', 
-              background: 'var(--bg-body)', border: '1px solid var(--card-border)',
-              boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
-            }}
+            initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} 
+            className="glass-card" style={{ padding: '30px', textAlign: 'center', maxWidth: '400px', background: 'var(--bg-body)' }}
           >
             <h3 style={{ margin: '0 0 15px 0', color: '#d63031', fontSize: '20px', fontWeight: 900 }}>Delete Material?</h3>
             <p style={{ opacity: 0.8, marginBottom: '25px', fontSize: '14px', lineHeight: '1.5' }}>
-              Are you sure you want to permanently delete <strong>{materialToDelete.title}</strong>? This action cannot be undone.
+              Are you sure you want to permanently delete <strong>{materialToDelete.title}</strong>?
             </p>
             <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
-              <button 
-                onClick={() => setMaterialToDelete(null)}
-                style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'transparent', color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 900 }}
-              >
-                CANCEL
-              </button>
-              <button 
-                onClick={() => handleDelete(materialToDelete._id)}
-                className="delete-btn"
-                style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#d63031', color: 'white', cursor: 'pointer', fontWeight: 900 }}
-              >
-                YES, DELETE
-              </button>
+              <button onClick={() => setMaterialToDelete(null)} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid var(--card-border)', background: 'transparent', color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 900 }}>CANCEL</button>
+              <button onClick={() => handleDelete(materialToDelete._id)} className="delete-btn" style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', background: '#d63031', color: 'white', cursor: 'pointer', fontWeight: 900 }}>YES, DELETE</button>
             </div>
           </motion.div>
         </div>
